@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models.source import Source, SourceType
-from app.schemas.source import PDFSourceCreate, PostgresSourceCreate, SourceResponse
+from app.schemas.source import SourceCreate, SourceResponse
 
-source_router = APIRouter(prefix="/sources", tags=["Sources"])
+router = APIRouter(prefix="/sources", tags=["Sources"])
 
 
 def get_db():
@@ -15,20 +15,19 @@ def get_db():
         db.close()
 
 
-@source_router.get("/", response_model=list[SourceResponse])
+@router.get("/", response_model=list[SourceResponse])
 def list_sources(db: Session = Depends(get_db)):
     return db.query(Source).all()
 
 
-@source_router.post("/", response_model=SourceResponse)
-def create_source(
-    source: PDFSourceCreate | PostgresSourceCreate, db: Session = Depends(get_db)
-):
-    if source["type"] == "pdf":
+@router.post("/", response_model=SourceResponse)
+def create_source(source: SourceCreate, db: Session = Depends(get_db)):
+    print(source)
+    if source.type == "pdf":
         new_source = Source(
-            name=source["name"], type=SourceType.pdf, filepath=source["filepath"]
+            name=source.name, type=SourceType.pdf, filepath=source.filepath
         )
-    elif source["type"] == "postgres":
+    elif source.type == "postgres":
         new_source = Source(
             name=source["name"],
             type=SourceType.postgres,
@@ -47,7 +46,7 @@ def create_source(
     return new_source
 
 
-@source_router.delete("/{source_id}")
+@router.delete("/{source_id}")
 def delete_source(source_id: int, db: Session = Depends(get_db)):
     source = db.query(Source).get(source_id)
     if not source:

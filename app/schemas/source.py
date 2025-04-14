@@ -1,17 +1,18 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Literal
+from typing import Union, Annotated, Optional, Literal
 
 
 class SourceBase(BaseModel):
     name: str
-    type: Literal["pdf", "postgres"]
 
 
 class PDFSourceCreate(SourceBase):
+    type: Literal["pdf"]
     filepath: str
 
 
 class PostgresSourceCreate(SourceBase):
+    type: Literal["postgres"]
     host: str
     port: int
     user: str
@@ -19,13 +20,18 @@ class PostgresSourceCreate(SourceBase):
     database: str
 
 
+SourceCreate = Annotated[
+    Union[PDFSourceCreate, PostgresSourceCreate], Field(discriminator="type")
+]
+
+
 class SourceResponse(SourceBase):
     id: int
+    type: str
     filepath: Optional[str]
     host: Optional[str]
     port: Optional[int]
     user: Optional[str]
     database: Optional[str]
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
