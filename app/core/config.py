@@ -13,6 +13,7 @@ class Settings:
     DB_HOST: str = os.getenv("DB_HOST", "localhost")
     DB_PORT: str = os.getenv("DB_PORT", "5432")
     DB_NAME: str = os.getenv("DB_NAME")
+    DEEPSEEK_API_KEY: str | None = os.getenv("DEEPSEEK_API_KEY")
 
 
 settings = Settings()
