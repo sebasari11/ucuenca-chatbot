@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, ForeignKey, Text, Float
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import relationship
-from app.database import Base
+from app.core.database import Base
 
 
 class ResourceChunk(Base):

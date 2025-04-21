@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.database import SessionLocal
+from app.core.database import SessionLocal
 from app.models.source import Source, SourceType
 from app.schemas.source import SourceCreate, SourceResponse
 
