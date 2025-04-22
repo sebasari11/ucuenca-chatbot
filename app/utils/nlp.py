@@ -1,20 +1,24 @@
-from typing import List
+from typing import List, Literal
 from sentence_transformers import SentenceTransformer
 import nltk
 import requests
-from app.core.config import settings
+import numpy as np
 from openai import OpenAI
+from sklearn.decomposition import PCA
+from app.core.config import settings
 
-nltk.download("punkt_tab")
 from nltk.tokenize import sent_tokenize
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
+# Descargar recursos de NLTK una sola vez
+nltk.download("punkt")
 
+# Modelos
+sentence_model = SentenceTransformer("all-MiniLM-L6-v2")
 client = OpenAI(api_key=settings.DEEPSEEK_API_KEY, base_url="https://api.deepseek.com")
 
 
+# CHUNKERS
 def chunk_text(text: str, max_length: int = 250) -> List[str]:
-    # Simple split by sentence or fixed chunk size
     return [text[i : i + max_length] for i in range(0, len(text), max_length)]
 
 
@@ -34,64 +38,82 @@ def smart_chunk_text(text: str, max_length: int = 250) -> List[str]:
 
 def sentence_chunker(text: str, max_sentences: int = 5) -> List[str]:
     sentences = sent_tokenize(text)
-    chunks = []
-
-    for i in range(0, len(sentences), max_sentences):
-        chunk = " ".join(sentences[i : i + max_sentences])
-        chunks.append(chunk.strip())
-
-    return chunks
+    return [
+        " ".join(sentences[i : i + max_sentences]).strip()
+        for i in range(0, len(sentences), max_sentences)
+    ]
 
 
 def paragraph_chunker(text: str) -> List[str]:
     paragraphs = text.split("\n\n")
-    print(paragraphs)
     chunks = []
+
     for paragraph in paragraphs:
-        print(len(paragraph))
-        if len(paragraph) > 100:
-            sentences = sent_tokenize(paragraph)
+        cleaned = paragraph.strip()
+        if len(cleaned) > 100:
+            sentences = sent_tokenize(cleaned)
             chunks.append(" ".join(sentences))
-        else:
-            chunks.append(paragraph.strip())
+        elif cleaned:
+            chunks.append(cleaned)
 
     return chunks
 
 
+# EMBEDDINGS
 def generate_embeddings(chunks: List[str]) -> List[List[float]]:
-    return model.encode(chunks).tolist()
+    return sentence_model.encode(chunks).tolist()
 
 
-def get_embedding(text: str) -> list[float]:
-    embedding = model.encode(text, convert_to_numpy=True)
-    return embedding.tolist()
+def reduce_embedding_dimension(
+    embedding: list[float], target_dim: int = 384
+) -> list[float]:
+    # Asumiendo que el embedding tiene 768 dimensiones y lo quieres reducir a 384
+    pca = PCA(n_components=target_dim)
+    reduced_embedding = pca.fit_transform([embedding])  # Reduce la dimensión
+    return reduced_embedding[0].tolist()
 
 
-def get_smart_embedding(context: str, query: str) -> list[float]:
+def get_embedding(
+    text: str,
+    backend: Literal["sentence", "ollama"] = "sentence",
+    ollama_model: str = "nomic-embed-text",
+    ollama_url: str = "http://localhost:11434/api/embeddings",
+) -> List[float]:
+    """
+    Genera un embedding a partir de texto utilizando SentenceTransformer o Ollama.
+    """
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError("El texto debe ser una cadena no vacía.")
 
-    prompt = f"""Contesta la siguiente pregunta usando únicamente el contexto proporcionado.
+    if backend == "sentence":
+        embedding = sentence_model.encode(text, convert_to_numpy=True)
+        print(f"Dimensión del embedding: {embedding.shape}")  # Verifica la dimensión
+        return embedding.tolist()
 
-    Contexto:
-    {context}
+    if backend == "ollama":
+        try:
+            response = requests.post(
+                ollama_url,
+                json={"model": ollama_model, "prompt": text},
+                timeout=10,
+            )
+            data = response.json()
+            embedding = data.get("embedding")
+            if isinstance(embedding, list):
+                reduced_embedding = reduce_embedding_dimension(
+                    embedding, target_dim=384
+                )
+                return [float(val) for val in reduced_embedding]
+            else:
+                raise ValueError("Embedding de Ollama no está en el formato adecuado.")
+        except requests.RequestException as e:
+            raise RuntimeError(f"Error al obtener embedding con Ollama: {e}")
 
-    Pregunta:
-    {query}
-
-    Respuesta:"""
-    print(prompt)
-    response = client.chat.completions.create(
-        model="deepseek-chat",
-        messages=[
-            {"role": "user", "content": prompt},
-        ],
-        stream=False,
-    )
-    print(response)
-    print(response.choices[0].message.content)
-    return print(response.choices[0].message.content)
+    raise ValueError("Backend inválido. Usa 'sentence' o 'ollama'.")
 
 
-def generate_contextual_answer_with_gemma(context: str, query: str) -> str:
+# RESPUESTAS INTELIGENTES
+def get_smart_embedding(context: str, query: str) -> str:
     prompt = f"""Contesta la siguiente pregunta usando únicamente el contexto proporcionado.
 
         Contexto:
@@ -100,21 +122,41 @@ def generate_contextual_answer_with_gemma(context: str, query: str) -> str:
         Pregunta:
         {query}
 
-        Respuesta:
-    """
+        Respuesta:"""
 
     try:
-        response = requests.post(
-            "http://localhost:11434/api/generate",
-            json={"model": "gemma3:latest", "prompt": prompt, "stream": False},
-            timeout=30,
+        response = client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[{"role": "user", "content": prompt}],
+            stream=False,
         )
-        response.raise_for_status()
-        result = response.json()
-        answer = result.get("response", "").strip()
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Error en DeepSeek: {e}"
 
-        return answer
 
-    except requests.exceptions.RequestException as e:
-        print(f"Error al comunicarse con Ollama (gemma): {e}")
-        return "Error al generar respuesta"
+# PROMPTS
+def build_contextual_prompt2(context: str, question: str) -> str:
+    return f""" Considera el siguiente contexto para responder la pregunta formulada. Si la pregunta no puede ser respondida con la información del contexto, responde unicamente: 'Lo siento, no tengo suficiente información para responder a eso, Lo siento 😕, no tengo suficiente información para responder a eso.¿Puedo ayudarte con algo más? 😊'
+    sin añadir nada adicional
+Contexto:
+{context}
+
+Pregunta:
+{question}
+
+Respuesta:"""
+
+
+def build_contextual_prompt(context: str, question: str) -> str:
+    return f"""Responde a la siguiente pregunta utilizando **exclusivamente** la información proporcionada en el contexto. 
+Si el contexto no contiene datos suficientes para responder con claridad, limita tu respuesta **únicamente** a este mensaje, sin agregar nada más:
+"Lo siento 😕, no tengo suficiente información para responder a eso por el momento. ¿Puedo ayudarte con algo más? 😊"
+
+Contexto:
+{context}
+
+Pregunta:
+{question}
+
+Respuesta:"""
