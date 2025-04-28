@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum
+from sqlalchemy import Column, Integer, String, Enum, Boolean
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 import enum
@@ -21,6 +21,7 @@ class Source(Base):
     user = Column(String, nullable=True)
     password = Column(String, nullable=True)
     database = Column(String, nullable=True)
+    processed = Column(Boolean, default=False, nullable=False)
 
     chunks = relationship(
         "ResourceChunk", back_populates="resource", cascade="all, delete-orphan"

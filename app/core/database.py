@@ -6,8 +6,6 @@ from app.core.config import settings
 
 DATABASE_URL = f"postgresql://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 
-print("DATABASE_URL =>   ", DATABASE_URL)
-
 try:
     engine = create_engine(DATABASE_URL)
     with engine.connect() as connection:

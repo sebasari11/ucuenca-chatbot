@@ -2,8 +2,10 @@ import os
 from app.core.database import SessionLocal
 from app.models.source import Source
 from app.models.resource_chunk import ResourceChunk
+from app.schemas.source_schema import SourceUpdate
 from app.utils.pdf_reader import extract_text_from_pdf
 from app.utils.nlp import paragraph_chunker, sentence_chunker, generate_embeddings
+from app.services.source_service import update_source
 from app.faiss_index.manager import FaissManager
 
 faiss_manager = FaissManager()
@@ -15,6 +17,9 @@ def process_resource(resource_id: int):
 
     if not resource:
         raise FileNotFoundError("Recurso no encontrado en la base de datos")
+
+    if resource.processed:
+        raise ValueError(f"El recurso {resource.name} ya fue procesado.")
 
     relative_path = os.path.join(
         resource.filepath.strip("\\/"), f"{resource.name}.{resource.type.value}"
@@ -38,6 +43,8 @@ def process_resource(resource_id: int):
         chunk_ids.append(db_chunk.id)
 
     faiss_manager.add_embeddings(embeddings, chunk_ids)
+    source_update: SourceUpdate = SourceUpdate(processed=True)
+    update_source(resource.id, source_update, db)
     db.commit()
     db.close()
 
