@@ -1,12 +1,38 @@
 from fastapi import FastAPI
-from app.api import health, source_api, ingest, search, ask
-from app.core.database import Base, engine
+from app.api.routes import (
+    health_api,
+    ingest_api,
+    search_api,
+    source_api,
+    ask_api,
+    chunck_api,
+)
+from app.core.database import init_db, test_connection
+from app.core.config import settings
+from app.core.logging import get_logger, setup_logging
+
+# Set up logging configuration
+setup_logging()
+
+# # Optional: Run migrations on startup
+# run_migrations()
+
+# Set up logger for this module
+logger = get_logger(__name__)
+
+app = FastAPI(title=settings.PROJECT_NAME, debug=settings.DEBUG)
 
 
-app = FastAPI(title="Chatbot UCUENCA - G.I Software")
-Base.metadata.create_all(bind=engine)
-app.include_router(health.router)
+@app.on_event("startup")
+async def on_startup():
+    await init_db()
+    await test_connection()
+
+
+# Base.metadata.create_all(bind=engine)
+app.include_router(health_api.router)
 app.include_router(source_api.router)
-app.include_router(ingest.router)
-app.include_router(search.router)
-app.include_router(ask.router)
+app.include_router(ingest_api.router)
+# app.include_router(search_api.router)
+# app.include_router(ask_api.router)
+app.include_router(chunck_api.router)
