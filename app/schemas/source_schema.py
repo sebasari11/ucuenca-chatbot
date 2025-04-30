@@ -49,3 +49,9 @@ class SourceUpdate(BaseModel):
     password: Optional[str] = None
     database: Optional[str] = None
     processed: Optional[bool] = None
+
+
+class SourceUpdateResponse(BaseModel):
+    message: str
+    source: SourceResponse
+    model_config = {"from_attributes": True}
