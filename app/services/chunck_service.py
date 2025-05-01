@@ -35,6 +35,14 @@ class ChunckService:
         result = await self.session.execute(query)
         return list(result.scalars().all())
 
+    async def get_chunk_by_id(self, chunk_id: int):
+        query = select(ResourceChunk).where(ResourceChunk.id == chunk_id)
+        result = await self.session.execute(query)
+        chunk = result.scalars().first()
+        if not chunk:
+            raise NotFoundException(f"Chunk con id {chunk_id} no encontrado.")
+        return chunk
+
     async def delete_chunck(self, chunk_id: int):
         query = delete(ResourceChunk).where(ResourceChunk.id == chunk_id)
         result = await self.session.execute(query)
