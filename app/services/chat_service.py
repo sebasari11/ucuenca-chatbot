@@ -59,10 +59,11 @@ class ChatService:
         prompt = build_contextual_prompt(context, question)
 
         answer = await self._generate_answer_with_model(model, prompt)
-        print(f"Answer: {answer}")
+
         if not answer:
             raise RuntimeError("No se pudo generar una respuesta.")
-        await self.add_message_to_chat_session(
+
+        chat_message: ChatMessage = await self.add_message_to_chat_session(
             message=ChatMessageCreate(
                 chat_session_id=chat_session_id,
                 question=question,
@@ -70,7 +71,9 @@ class ChatService:
                 model=model,
             )
         )
-        return ChatMessageResponse(answer=answer)
+        return ChatMessageResponse(
+            id=chat_message.id, answer=answer, timestamp=chat_message.timestamp
+        )
 
     async def search_embeddings(
         self, question: str, top_k: int
