@@ -4,7 +4,7 @@ from app.api.routes import (
     ingest_api,
     search_api,
     source_api,
-    ask_api,
+    chat_api,
     chunck_api,
 )
 from app.core.database import init_db, test_connection
@@ -34,5 +34,5 @@ app.include_router(health_api.router)
 app.include_router(source_api.router)
 app.include_router(ingest_api.router)
 # app.include_router(search_api.router)
-# app.include_router(ask_api.router)
+app.include_router(chat_api.router)
 app.include_router(chunck_api.router)

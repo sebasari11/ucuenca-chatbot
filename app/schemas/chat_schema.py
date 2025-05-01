@@ -1,0 +1,33 @@
+from pydantic import BaseModel, ConfigDict
+from datetime import datetime
+from typing import List
+
+
+class ChatMessageCreate(BaseModel):
+    chat_session_id: int
+    question: str
+    model: str | None = None
+
+
+class ChatSessionCreate(BaseModel):
+    user_id: int | None = None  # TODO remover opcional
+
+
+class ChatMessageResponse(ChatMessageCreate):
+    id: int
+    timestamp: datetime
+    answer: str | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ChatSessionResponse(BaseModel):
+    id: int
+    created_at: datetime
+    messages: List[ChatMessageResponse]
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ChunckSearchResult(BaseModel):
+    chunk_id: int
+    content: str
+    similarity: float
