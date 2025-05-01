@@ -74,7 +74,7 @@ def reduce_embedding_dimension(
 
 
 def get_embedding(
-    text: str,
+    question: str,
     backend: Literal["sentence", "ollama"] = "sentence",
     ollama_model: str = "nomic-embed-text",
     ollama_url: str = "http://localhost:11434/api/embeddings",
@@ -82,11 +82,11 @@ def get_embedding(
     """
     Genera un embedding a partir de texto utilizando SentenceTransformer o Ollama.
     """
-    if not isinstance(text, str) or not text.strip():
+    if not isinstance(question, str) or not question.strip():
         raise ValueError("El texto debe ser una cadena no vacía.")
 
     if backend == "sentence":
-        embedding = sentence_model.encode(text, convert_to_numpy=True)
+        embedding = sentence_model.encode(question, convert_to_numpy=True)
         print(f"Dimensión del embedding: {embedding.shape}")  # Verifica la dimensión
         return embedding.tolist()
 
@@ -94,7 +94,7 @@ def get_embedding(
         try:
             response = requests.post(
                 ollama_url,
-                json={"model": ollama_model, "prompt": text},
+                json={"model": ollama_model, "prompt": question},
                 timeout=10,
             )
             data = response.json()
