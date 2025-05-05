@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 import httpx
+from sqlalchemy import select, delete
 from app.models.chat_session import ChatSession
 from app.models.chat_message import ChatMessage
 from app.schemas.chat_schema import (
@@ -27,11 +28,28 @@ class ChatService:
         await self.session.refresh(chat_session)
         return chat_session
 
-    async def get_chat_history(self) -> List[ChatSession]:
-        chat_sessions = await self.session.execute(
-            "SELECT * FROM chat_session ORDER BY created_at DESC"
+    async def get_chat_message_by_session_id(
+        self, chat_session_id: int
+    ) -> List[ChatMessage]:
+        query = select(ChatMessage).where(
+            ChatMessage.chat_session_id == chat_session_id
         )
-        return chat_sessions.scalars().all()
+        chat_messages = await self.session.execute(query)
+        return chat_messages.scalars().all()
+
+    async def get_chat_sessions_by_user_id(self, user_id: int) -> List[ChatSession]:
+        query = (
+            select(ChatSession)
+            .where(ChatSession.user_id == user_id)
+            .order_by(ChatSession.created_at.desc())
+        )
+        result = await self.session.execute(query)
+        chat_sessions = result.scalars().all()
+        if not chat_sessions:
+            raise NotFoundException(
+                "No se encontraron sesiones de chat para el usuario especificado."
+            )
+        return chat_sessions
 
     async def get_chat_session_by_id(self, chat_session_id: int) -> ChatSession:
         chat_session = await self.session.get(ChatSession, chat_session_id)
@@ -105,3 +123,11 @@ class ChatService:
                 return response.json().get("response", "").strip()
         except httpx.HTTPError as e:
             raise RuntimeError(f"Error al comunicarse con Ollama ({model}): {e}")
+
+    async def delete_chat_session(self, chat_session_id: int) -> dict:
+        query = delete(ChatSession).where(ChatSession.id == chat_session_id)
+        result = await self.session.execute(query)
+        if result.rowcount == 0:
+            raise NotFoundException("Chat session not found.")
+        await self.session.commit()
+        return {"detail": "Chat session deleted."}

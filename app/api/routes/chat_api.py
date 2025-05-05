@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
@@ -17,7 +18,7 @@ def get_chat_service(session: AsyncSession = Depends(get_session)):
     return ChatService(session)
 
 
-@router.post("/start", response_model=ChatSessionResponse)
+@router.post("/sessions/start", response_model=ChatSessionResponse)
 async def start_chat(
     session_data: ChatSessionCreate = None,
     service: ChatService = Depends(get_chat_service),
@@ -28,22 +29,42 @@ async def start_chat(
     return session
 
 
-@router.post("/send", response_model=ChatMessageResponse)
+@router.post("/sessions/send_message", response_model=ChatMessageResponse)
 async def send_message(
     message: ChatMessageCreate,
     service: ChatService = Depends(get_chat_service),
 ):
-    if message.model is None:
-        message.model = "gemma3:latest"
+    model = message.model or "gemma3:latest"
 
     return await service.answer_question(
         message.chat_session_id, message.question, model=message.model, top_k=5
     )
 
 
-@router.get("/history", response_model=list[ChatMessageResponse])
-async def get_chat_history(
+@router.get("/sessions/{user_id}", response_model=list[ChatSessionResponse])
+async def get_user_chat_sessions(
+    user_id: int,
+    service: ChatService = Depends(get_chat_service),
+):
+    chat_sessions: List[ChatSession] = await service.get_chat_sessions_by_user_id(
+        user_id
+    )
+    return chat_sessions
+
+
+@router.get(
+    "/sessions/{chat_session_id}/messages", response_model=list[ChatMessageResponse]
+)
+async def get_session_messages(
     chat_session_id: int,
     service: ChatService = Depends(get_chat_service),
 ):
-    return await service.get_chat_history(chat_session_id)
+    return await service.get_chat_message_by_session_id(chat_session_id)
+
+
+@router.delete("/sessions/{chat_session_id}")
+async def delete_chat_session(
+    chat_session_id: int,
+    service: ChatService = Depends(get_chat_service),
+):
+    return await service.delete_chat_session(chat_session_id)
