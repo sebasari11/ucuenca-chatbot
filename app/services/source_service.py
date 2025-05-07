@@ -63,7 +63,6 @@ class SourceService:
         update_data = source_data.model_dump(exclude_unset=True)
         if not update_data:
             raise ValueError("No hay campos para actualizar.")
-        print(update_data)
         query = update(Source).where(Source.id == source_id).values(**update_data)
         result = await self.session.execute(query)
         if result.rowcount == 0:
