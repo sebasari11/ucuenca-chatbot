@@ -1,4 +1,3 @@
-from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
@@ -37,19 +36,8 @@ async def send_message(
     model = message.model or "gemma3:latest"
 
     return await service.answer_question(
-        message.chat_session_id, message.question, model=message.model, top_k=5
+        message.chat_session_id, message.question, model=model, top_k=5
     )
-
-
-@router.get("/sessions/{user_id}", response_model=list[ChatSessionResponse])
-async def get_user_chat_sessions(
-    user_id: int,
-    service: ChatService = Depends(get_chat_service),
-):
-    chat_sessions: List[ChatSession] = await service.get_chat_sessions_by_user_id(
-        user_id
-    )
-    return chat_sessions
 
 
 @router.get(

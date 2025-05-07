@@ -37,20 +37,6 @@ class ChatService:
         chat_messages = await self.session.execute(query)
         return chat_messages.scalars().all()
 
-    async def get_chat_sessions_by_user_id(self, user_id: int) -> List[ChatSession]:
-        query = (
-            select(ChatSession)
-            .where(ChatSession.user_id == user_id)
-            .order_by(ChatSession.created_at.desc())
-        )
-        result = await self.session.execute(query)
-        chat_sessions = result.scalars().all()
-        if not chat_sessions:
-            raise NotFoundException(
-                "No se encontraron sesiones de chat para el usuario especificado."
-            )
-        return chat_sessions
-
     async def get_chat_session_by_id(self, chat_session_id: int) -> ChatSession:
         chat_session = await self.session.get(ChatSession, chat_session_id)
         if not chat_session:
