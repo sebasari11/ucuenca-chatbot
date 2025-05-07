@@ -8,8 +8,8 @@ from app.core.config import settings
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
-# DATABASE_URL = f"postgresql://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 DATABASE_URL = f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
+DATABASE_SYNC_URL = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
 engine: AsyncEngine = create_async_engine(DATABASE_URL, echo=False, future=True)
 
 
