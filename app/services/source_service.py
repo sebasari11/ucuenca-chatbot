@@ -14,10 +14,10 @@ class SourceService:
     def __init__(self, session: AsyncSession):
         self.session: AsyncSession = session
 
-    def _create_pdf_source(source: SourceCreate):
+    def _create_pdf_source(self, source: SourceCreate):
         return Source(name=source.name, type=SourceType.pdf, filepath=source.filepath)
 
-    def _create_postgres_source(source: SourceCreate):
+    def _create_postgres_source(self, source: SourceCreate):
         return Source(
             name=source.name,
             type=SourceType.postgres,
