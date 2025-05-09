@@ -76,7 +76,11 @@ class ChatService:
             )
         )
         return ChatMessageResponse(
-            id=chat_message.id, answer=answer, timestamp=chat_message.timestamp
+            id=chat_message.id,
+            answer=answer,
+            timestamp=chat_message.timestamp,
+            chat_session_id=chat_session_id,
+            question=question,
         )
 
     async def search_embeddings(
