@@ -30,7 +30,7 @@ class ChatSessionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class ChunckSearchResult(BaseModel):
+class ChunkSearchResult(BaseModel):
     chunk_id: int
     content: str
     similarity: float

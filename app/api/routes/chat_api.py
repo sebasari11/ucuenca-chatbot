@@ -36,7 +36,7 @@ async def send_message(
     model = message.model or "gemma3:latest"
 
     return await service.answer_question(
-        message.chat_session_id, message.question, model=model, top_k=5
+        message.chat_session_id, message.question, model=model, top_k=10
     )
 
 

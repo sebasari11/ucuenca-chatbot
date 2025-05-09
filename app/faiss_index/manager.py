@@ -2,11 +2,14 @@ import faiss
 import numpy as np
 import os
 import pickle
+from app.core.logging import get_logger
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 INDEX_PATH = os.path.join(BASE_DIR, "resource.index")
 ID_MAP_PATH = os.path.join(BASE_DIR, "id_map.pkl")
+
+logger = get_logger(__name__)
 
 
 class FaissManager:
@@ -16,22 +19,23 @@ class FaissManager:
         self.load()
 
     def generate_index(self, dim):
+        logger.info("Creando nuevo índice FAISS")
         self.index = faiss.IndexFlatL2(dim)
 
     def add_embeddings(self, embeddings: list[list[float]], chunk_ids: list[int]):
         vectors = np.array(embeddings).astype("float32")
-        self.generate_index(vectors.shape[1])
         if vectors.ndim != 2:
             raise ValueError(
                 f"Los vectores deben tener forma (n, d). Recibido: {vectors.shape}"
             )
 
-        self.generate_index(vectors.shape[1])
-
-        if vectors.shape[1] != self.index.d:
-            raise ValueError(
-                f"Dimensión del índice FAISS ({self.index.d}) no coincide con la de los vectores ({vectors.shape[1]})"
-            )
+        if self.index is None:
+            self.generate_index(vectors.shape[1])
+        else:
+            if vectors.shape[1] != self.index.d:
+                raise ValueError(
+                    f"Dimensión del índice FAISS ({self.index.d}) no coincide con la de los vectores ({vectors.shape[1]})"
+                )
         self.index.add(vectors)
 
         for i, chunk_id in enumerate(chunk_ids):
@@ -54,6 +58,8 @@ class FaissManager:
     def load(self):
         if os.path.exists(INDEX_PATH):
             self.index = faiss.read_index(INDEX_PATH)
+            logger.info("Índice FAISS cargado desde el disco")
         if os.path.exists(ID_MAP_PATH):
             with open(ID_MAP_PATH, "rb") as f:
                 self.id_map = pickle.load(f)
+                logger.info("Mapa de IDs cargado desde el disco")

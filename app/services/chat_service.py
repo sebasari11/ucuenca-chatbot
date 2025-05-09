@@ -2,17 +2,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 import httpx
 from sqlalchemy import select, delete
+from app.core.logging import get_logger
 from app.models.chat_session import ChatSession
 from app.models.chat_message import ChatMessage
 from app.schemas.chat_schema import (
     ChatMessageCreate,
-    ChunckSearchResult,
+    ChunkSearchResult,
     ChatMessageResponse,
 )
 from app.services.chunck_service import ChunckService
 from app.core.exceptions import AlreadyExistsException, NotFoundException
 from app.utils.nlp import get_embedding, build_contextual_prompt
 from app.faiss_index.manager import FaissManager
+
+logger = get_logger(__name__)
 
 
 class ChatService:
@@ -56,6 +59,12 @@ class ChatService:
         self, chat_session_id: int, question: str, model: str, top_k: int
     ) -> ChatMessageResponse:
         chunks = await self.search_embeddings(question, top_k)
+        print(f"Chunks encontrados: {len(chunks)}")
+        for c in chunks:
+            print("*" * 20)
+            print(f"ID: {c.chunk_id}, Similarity: {c.similarity}")
+            print(f"Content: {c.content}")
+            print("*" * 20)
         if not chunks:
             raise NotFoundException("No se encontraron resultados relevantes.")
 
@@ -75,6 +84,7 @@ class ChatService:
                 model=model,
             )
         )
+        print(f"Chat message: {chat_message.id}")
         return ChatMessageResponse(
             id=chat_message.id,
             answer=answer,
@@ -85,7 +95,7 @@ class ChatService:
 
     async def search_embeddings(
         self, question: str, top_k: int
-    ) -> List[ChunckSearchResult]:
+    ) -> List[ChunkSearchResult]:
         embedding = get_embedding(question=question, backend="sentence")
         chunk_ids, similarities = self.faiss.search(embedding, k=top_k)
 
@@ -94,12 +104,22 @@ class ChatService:
             chunk = await self.chunk_service.get_chunk_by_id(chunk_id)
             if chunk:
                 results.append(
-                    ChunckSearchResult(
+                    ChunkSearchResult(
                         chunk_id=chunk.id,
                         content=chunk.chunk_text,
                         similarity=float(similarity),
                     )
                 )
+
+        results.sort(key=lambda x: x.similarity)
+
+        print("After sorting:")
+        for chunk in results:
+            logger.info("*" * 20)
+            logger.info(f"ID: {chunk.chunk_id}, Similarity: {chunk.similarity}")
+            logger.info(f"Content: {chunk.content}")
+            logger.info("*" * 20)
+
         return results
 
     async def _generate_answer_with_model(self, model: str, prompt: str) -> str:

@@ -5,7 +5,6 @@ from app.models.source import SourceType
 
 class SourceBase(BaseModel):
     name: str
-    processed: bool
 
 
 class PDFSourceCreate(SourceBase):
