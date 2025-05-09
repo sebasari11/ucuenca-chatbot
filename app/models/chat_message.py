@@ -13,7 +13,7 @@ class ChatMessage(Base):
     )
     question = Column(Text, nullable=False)
     answer = Column(Text, nullable=False)
-    timestamp = Column(DateTime, default=datetime.now(timezone.utc))
+    timestamp = Column(DateTime, default=datetime.now())
     model = Column(Text, nullable=True)
 
     chat_session = relationship("ChatSession", back_populates="messages")
