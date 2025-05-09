@@ -17,6 +17,8 @@ class ChatSessionCreate(BaseModel):
 class ChatMessageResponse(BaseModel):
     id: int
     timestamp: datetime
+    question: str
+    chat_session_id: int
     answer: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
