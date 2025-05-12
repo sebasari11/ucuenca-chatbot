@@ -1,8 +1,10 @@
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from sqlalchemy import delete, select
+from fastapi import HTTPException, status
 from typing import List
 from datetime import datetime
+from app.core.security import verify_password
 from app.core.logging import get_logger
 from app.core.exceptions import NotFoundException
 from app.services.chat_service import ChatService
@@ -74,3 +76,13 @@ class UserService:
                 "No se encontraron sesiones de chat para el usuario especificado."
             )
         return chat_sessions
+
+    async def authenticate_user(self, email: str, password: str):
+        result = await self.session.execute(select(User).where(User.email == email))
+        user = result.scalars().first()
+        if not user or not verify_password(password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciales incorrectas",
+            )
+        return user
