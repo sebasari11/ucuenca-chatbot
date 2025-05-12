@@ -4,13 +4,13 @@ from sqlalchemy import delete, select
 from app.core.logging import get_logger
 from app.core.exceptions import AlreadyExistsException, NotFoundException
 from app.models.resource_chunk import ResourceChunk
-from app.schemas.chunck_schema import ChunkCreate
+from app.schemas.chunk_schema import ChunkCreate
 
 
 logger = get_logger(__name__)
 
 
-class ChunckService:
+class ChunkService:
     def __init__(self, session: AsyncSession):
         self.session: AsyncSession = session
 
@@ -43,7 +43,7 @@ class ChunckService:
             raise NotFoundException(f"Chunk con id {chunk_id} no encontrado.")
         return chunk
 
-    async def delete_chunck(self, chunk_id: int):
+    async def delete_chunk(self, chunk_id: int):
         query = delete(ResourceChunk).where(ResourceChunk.id == chunk_id)
         result = await self.session.execute(query)
         if result.rowcount == 0:
