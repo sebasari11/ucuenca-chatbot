@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
 from app.schemas.source_schema import (
@@ -6,6 +6,7 @@ from app.schemas.source_schema import (
     SourceResponse,
     SourceUpdate,
     SourceUpdateResponse,
+    SourceProcessResponse,
 )
 from app.services.source_service import SourceService
 
@@ -21,6 +22,21 @@ async def create_source(
     source: SourceCreate, service: SourceService = Depends(get_source_service)
 ):
     return await service.create_source(source)
+
+
+@router.post("/process_resource/{resource_id}", response_model=SourceProcessResponse)
+async def ingest_resource(
+    resource_id: int, service: SourceService = Depends(get_source_service)
+):
+    try:
+        chunks = await service.process_resource(resource_id)
+        return SourceProcessResponse(
+            message="Ingesta y procesamiento exitoso",
+            resource_id=resource_id,
+            chunks=chunks,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"exepcion => {str(e)}")
 
 
 @router.get("/", response_model=list[SourceResponse])

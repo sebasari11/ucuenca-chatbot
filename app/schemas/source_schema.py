@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Union, Annotated, Optional, Literal
+from app.schemas.chunk_schema import ChunkResponse
 from app.models.source import SourceType
+from typing import List
 
 
 class SourceBase(BaseModel):
@@ -54,3 +56,10 @@ class SourceUpdateResponse(BaseModel):
     message: str
     source: SourceResponse
     model_config = {"from_attributes": True}
+
+
+class SourceProcessResponse(BaseModel):
+    message: str
+    resource_id: int
+    chunks: List[ChunkResponse] = []
+    model_config: ConfigDict = {"from_attributes": True}
