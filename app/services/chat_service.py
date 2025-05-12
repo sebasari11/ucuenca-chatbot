@@ -10,8 +10,8 @@ from app.schemas.chat_schema import (
     ChunkSearchResult,
     ChatMessageResponse,
 )
-from app.services.chunck_service import ChunckService
-from app.core.exceptions import AlreadyExistsException, NotFoundException
+from app.services.chunk_service import ChunkService
+from app.core.exceptions import NotFoundException
 from app.utils.nlp import get_embedding, build_contextual_prompt
 from app.faiss_index.manager import FaissManager
 
@@ -21,7 +21,7 @@ logger = get_logger(__name__)
 class ChatService:
     def __init__(self, session: AsyncSession):
         self.session: AsyncSession = session
-        self.chunk_service = ChunckService(session)
+        self.chunk_service = ChunkService(session)
         self.faiss = FaissManager()
 
     async def create_chat_session(self, user_id: int | None = None) -> ChatSession:
