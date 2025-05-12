@@ -14,6 +14,8 @@ class Settings:
     DB_PORT: str = os.getenv("DB_PORT", "5432")
     DB_NAME: str = os.getenv("DB_NAME")
     DEEPSEEK_API_KEY: str | None = os.getenv("DEEPSEEK_API_KEY")
+    SECRET_KEY: str = os.getenv("SECRET_KEY")
+    ALGORITHM: str = os.getenv("ALGORITHM")
 
 
 settings = Settings()
