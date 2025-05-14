@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, or_
 from fastapi import HTTPException, status
 from typing import List
 from datetime import datetime
@@ -77,8 +77,11 @@ class UserService:
             )
         return chat_sessions
 
-    async def authenticate_user(self, email: str, password: str):
-        result = await self.session.execute(select(User).where(User.email == email))
+    async def authenticate_user(self, identifier: str, password: str):
+        query = select(User).where(
+            or_(User.username == identifier, User.email == identifier)
+        )
+        result = await self.session.execute(query)
         user = result.scalars().first()
         if not user or not verify_password(password, user.hashed_password):
             raise HTTPException(

@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
+from app.core.security import create_access_token
 from app.services.user_service import UserService
-from app.schemas.user_schema import UserCreate, UserResponse, UserUpdate
+from app.schemas.user_schema import UserCreate, UserResponse, UserUpdate, Token
 from app.schemas.chat_schema import ChatSessionResponse
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -17,6 +19,16 @@ async def register_user(
     user: UserCreate, service: UserService = Depends(get_user_service)
 ):
     return await service.create_user(user)
+
+
+@router.post("/login", response_model=Token)
+async def login_user(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    service: UserService = Depends(get_user_service),
+):
+    user = await service.authenticate_user(form_data.username, form_data.password)
+    access_token = create_access_token(data={"sub": user.username})
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.get("/{user_id}", response_model=list[ChatSessionResponse])
