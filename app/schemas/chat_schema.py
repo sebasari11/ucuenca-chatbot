@@ -10,10 +10,6 @@ class ChatMessageCreate(BaseModel):
     model: str | None = None
 
 
-class ChatSessionCreate(BaseModel):
-    user_id: int | None = None  # TODO remover opcional
-
-
 class ChatMessageResponse(BaseModel):
     id: int
     timestamp: datetime

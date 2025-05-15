@@ -50,6 +50,7 @@ class SourceUpdate(BaseModel):
     password: Optional[str] = None
     database: Optional[str] = None
     processed: Optional[bool] = None
+    updated_by_id: int
 
 
 class SourceUpdateResponse(BaseModel):

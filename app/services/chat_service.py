@@ -24,7 +24,7 @@ class ChatService:
         self.chunk_service = ChunkService(session)
         self.faiss = FaissManager()
 
-    async def create_chat_session(self, user_id: int | None = None) -> ChatSession:
+    async def create_chat_session(self, user_id: int) -> ChatSession:
         chat_session = ChatSession(user_id=user_id)
         self.session.add(chat_session)
         await self.session.commit()

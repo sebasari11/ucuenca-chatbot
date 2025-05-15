@@ -4,6 +4,7 @@ from typing import List
 from app.core.logging import get_logger
 from sqlalchemy import delete, select, update
 from fastapi import HTTPException
+from datetime import datetime
 from app.models.source import Source, SourceType
 from app.services.chunk_service import ChunkService
 from app.schemas.chunk_schema import ChunkCreate
@@ -67,12 +68,17 @@ class SourceService:
         result = await self.session.execute(query)
         return list(result.scalars().all())
 
-    async def update_source(self, source_id: int, source_data: SourceUpdate):
-        logger.debug(f"Actualizando el Recurso con id: {source_id}")
+    async def update_source(
+        self, source_id: int, source_data: SourceUpdate, user_id: int
+    ):
         update_data = source_data.model_dump(exclude_unset=True)
         if not update_data:
             raise ValueError("No hay campos para actualizar.")
-        query = update(Source).where(Source.id == source_id).values(**update_data)
+        query = (
+            update(Source)
+            .where(Source.id == source_id)
+            .values(**update_data, updated_by_id=user_id, updated_at=datetime.now())
+        )
         result = await self.session.execute(query)
         if result.rowcount == 0:
             raise NotFoundException(f"Recurso con id {source_id} no encontrado")
@@ -87,7 +93,7 @@ class SourceService:
         await self.session.commit()
         return {"detail": f"Recurso {source_id} eliminado"}
 
-    async def process_resource(self, resource_id: int):
+    async def process_resource(self, resource_id: int, user_id: int):
         resource = await self._get_and_validate_resource(resource_id)
         absolute_path = self._build_safe_absolute_path(resource)
 
@@ -98,7 +104,7 @@ class SourceService:
         chunks = await self._store_chunks(resource.id, chunks, embeddings)
         chunk_ids = [chunk.id for chunk in chunks]
         self._store_in_faiss(embeddings, chunk_ids)
-        await self._mark_resource_as_processed(resource.id)
+        await self._mark_resource_as_processed(resource.id, user_id)
 
         logger.info(
             f"{len(chunks)} chunks procesados y almacenados para recurso {resource_id}"
@@ -146,6 +152,6 @@ class SourceService:
     def _store_in_faiss(self, embeddings: List[List[float]], chunk_ids: List[int]):
         faiss_manager.add_embeddings(embeddings, chunk_ids)
 
-    async def _mark_resource_as_processed(self, resource_id: int):
-        update_data = SourceUpdate(processed=True)
+    async def _mark_resource_as_processed(self, resource_id: int, user_id: int):
+        update_data = SourceUpdate(processed=True, updated_by_id=user_id)
         await self.update_source(resource_id, update_data)

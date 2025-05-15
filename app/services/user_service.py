@@ -37,6 +37,14 @@ class UserService:
         await self.session.refresh(db_user)
         return db_user
 
+    async def get_users(self) -> List[User]:
+        query = select(User)
+        result = await self.session.execute(query)
+        users = result.scalars().all()
+        if not users:
+            raise NotFoundException("No se encontraron usuarios.")
+        return users
+
     async def update_user(self, user_id: int, update_data: UserUpdate) -> User:
         logger.debug(f"Updating user with id: {user_id}")
 

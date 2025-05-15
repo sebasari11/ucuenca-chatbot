@@ -6,6 +6,8 @@ from app.core.security import create_access_token
 from app.services.user_service import UserService
 from app.schemas.user_schema import UserCreate, UserResponse, UserUpdate, Token
 from app.schemas.chat_schema import ChatSessionResponse
+from app.api.deps import get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -31,10 +33,19 @@ async def login_user(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+@router.get("/", response_model=list[UserResponse])
+async def list_users(
+    service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user),
+):
+    return await service.get_users()
+
+
 @router.get("/{user_id}", response_model=list[ChatSessionResponse])
 async def get_user_chat_sessions(
     user_id: int,
     service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user),
 ):
     return await service.get_chat_sessions_by_user_id(user_id)
 
@@ -44,5 +55,6 @@ async def update_user(
     user_id: int,
     user_update: UserUpdate,
     service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user),
 ):
     return await service.update_user(user_id, user_update)
