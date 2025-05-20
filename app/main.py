@@ -1,15 +1,17 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.api.routes import (
-    chunk_api,
+    #   chunk_api,
     health_api,
-    source_api,
-    chat_api,
-    user_api,
+    #  chat_api,
 )
 from app.core.database import init_db, test_connection
 from app.core.config import settings
 from app.core.logging import get_logger, setup_logging
+
+from app.src.users.routes import router as users_router
+from app.src.resources.routes import router as resources_router
+from app.src.chunks.routes import router as chunks_router
 
 # Set up logging configuration
 setup_logging()
@@ -32,7 +34,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title=settings.PROJECT_NAME, debug=settings.DEBUG, lifespan=lifespan)
 
 app.include_router(health_api.router)
-app.include_router(source_api.router)
-app.include_router(chat_api.router)
-app.include_router(chunk_api.router)
-app.include_router(user_api.router)
+app.include_router(users_router)
+app.include_router(resources_router)
+app.include_router(chunks_router)
