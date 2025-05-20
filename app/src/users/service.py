@@ -7,10 +7,10 @@ from datetime import datetime
 from app.core.security import verify_password
 from app.core.logging import get_logger
 from app.core.exceptions import NotFoundException
-from app.services.chat_service import ChatService
-from app.models.user import User
-from app.models.chat_session import ChatSession
-from app.schemas.user_schema import UserCreate, UserUpdate
+from app.src.chats.service import ChatService
+from app.src.users.models import User
+from app.src.chats.models import ChatSession
+from app.src.users.schemas import UserCreate, UserUpdate
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -31,6 +31,7 @@ class UserService:
             username=user.username,
             email=user.email,
             hashed_password=self._get_password_hash(user.password),
+            full_name=user.full_name,
         )
         self.session.add(db_user)
         await self.session.commit()

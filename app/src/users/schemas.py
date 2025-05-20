@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, EmailStr
 from typing import Optional
 from datetime import datetime
+from uuid import UUID
 
 
 class UserCreate(BaseModel):
@@ -11,7 +12,7 @@ class UserCreate(BaseModel):
 
 
 class UserResponse(BaseModel):
-    id: int
+    external_id: UUID
     username: str
     email: EmailStr
     created_at: datetime
@@ -32,7 +33,5 @@ class Token(BaseModel):
 
 
 class LoginData(BaseModel):
-    """Login data schema."""
-
     email: EmailStr
     password: str

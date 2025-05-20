@@ -3,11 +3,11 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
 from app.core.security import create_access_token
-from app.services.user_service import UserService
-from app.schemas.user_schema import UserCreate, UserResponse, UserUpdate, Token
-from app.schemas.chat_schema import ChatSessionResponse
+from app.src.users.service import UserService
+from app.src.users.schemas import UserCreate, UserResponse, UserUpdate, Token
+from app.src.chats.schemas import ChatSessionResponse
 from app.api.deps import get_current_user
-from app.models.user import User
+from app.src.users.models import User
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
