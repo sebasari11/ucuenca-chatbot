@@ -3,14 +3,13 @@ from typing import List
 import httpx
 from sqlalchemy import select, delete
 from app.core.logging import get_logger
-from app.models.chat_session import ChatSession
-from app.models.chat_message import ChatMessage
-from app.schemas.chat_schema import (
+from app.src.chats.models import ChatSession, ChatMessage
+from app.src.chats.schemas import (
     ChatMessageCreate,
     ChunkSearchResult,
     ChatMessageResponse,
 )
-from app.services.chunk_service import ChunkService
+from app.src.chunks.service import ChunkService
 from app.core.exceptions import NotFoundException
 from app.utils.nlp import get_embedding, build_contextual_prompt
 from app.faiss_index.manager import FaissManager
