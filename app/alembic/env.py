@@ -23,11 +23,10 @@ import os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 from app.core.database import Base, DATABASE_SYNC_URL
-from app.models.chat_message import ChatMessage
-from app.models.chat_session import ChatSession
-from app.models.resource_chunk import ResourceChunk
-from app.models.source import Source
-from app.models.user import User
+from app.src.chats.models import ChatMessage, ChatSession
+from app.src.chunks.models import ResourceChunk
+from app.src.resources.models import Resource
+from app.src.users.models import User
 
 target_metadata = Base.metadata
 config.set_main_option("sqlalchemy.url", DATABASE_SYNC_URL)
