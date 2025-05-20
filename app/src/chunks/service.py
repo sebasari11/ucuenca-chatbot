@@ -1,18 +1,23 @@
+from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import delete, select
 from app.core.logging import get_logger
 from app.core.exceptions import AlreadyExistsException, NotFoundException
-from app.models.resource_chunk import ResourceChunk
-from app.schemas.chunk_schema import ChunkCreate
+from app.src.chunks.models import ResourceChunk
+from app.src.chunks.schemas import ChunkBase as ChunkCreate
+from app.src.resources.models import Resource
+from sqlalchemy.orm import aliased
 
 
 logger = get_logger(__name__)
 
 
 class ChunkService:
+
     def __init__(self, session: AsyncSession):
         self.session: AsyncSession = session
+        self.resourceAlias = aliased(Resource)
 
     async def create_chunk(self, chunk: ChunkCreate) -> ResourceChunk:
         new_chunk = ResourceChunk(**chunk.model_dump())
@@ -30,8 +35,12 @@ class ChunkService:
         result = await self.session.execute(query)
         return list(result.scalars().all())
 
-    async def get_chunks_by_resource(self, resource_id: int):
-        query = select(ResourceChunk).where(ResourceChunk.resource_id == resource_id)
+    async def get_chunks_by_resource(self, resource_id: UUID):
+        query = (
+            select(ResourceChunk)
+            .where(ResourceChunk.resource_id == self.resourceAlias.id)
+            .where(self.resourceAlias.external_id == resource_id)
+        )
         result = await self.session.execute(query)
         return list(result.scalars().all())
 
@@ -51,8 +60,12 @@ class ChunkService:
         await self.session.commit()
         return {"detail": "Chunck eliminado"}
 
-    async def delete_chunck_by_resource_id(self, resource_id: int):
-        query = delete(ResourceChunk).where(ResourceChunk.resource_id == resource_id)
+    async def delete_chunks_by_resource_id(self, resource_id: UUID):
+        query = (
+            delete(ResourceChunk)
+            .where(ResourceChunk.resource_id == self.resourceAlias.id)
+            .where(self.resourceAlias.external_id == resource_id)
+        )
         result = await self.session.execute(query)
         if result.rowcount == 0:
             raise NotFoundException(

@@ -1,11 +1,12 @@
+from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from app.core.database import get_session
 from app.api.deps import get_current_user
-from app.models.user import User
-from app.schemas.chunk_schema import ChunkCreate, ChunkResponse
-from app.services.chunk_service import ChunkService
+from app.src.users.models import User
+from app.src.chunks.schemas import ChunkBase, ChunkResponse
+from app.src.chunks.service import ChunkService
 
 
 router = APIRouter(prefix="/chunks", tags=["Chunks"])
@@ -17,7 +18,7 @@ def get_chunk_service(db: AsyncSession = Depends(get_session)) -> ChunkService:
 
 @router.post("/", response_model=ChunkResponse)
 async def create_chunk(
-    chunk: ChunkCreate,
+    chunk: ChunkBase,
     service: ChunkService = Depends(get_chunk_service),
     current_user: User = Depends(get_current_user),
 ):
@@ -34,7 +35,7 @@ async def get_all_chunks(
 
 @router.get("/by_resource/{resource_id}", response_model=List[ChunkResponse])
 async def get_chunks_by_resource(
-    resource_id: int,
+    resource_id: UUID,
     service: ChunkService = Depends(get_chunk_service),
     current_user: User = Depends(get_current_user),
 ):
@@ -53,9 +54,9 @@ async def delete_chunk(
 
 @router.delete("/by_resource/{resource_id}")
 async def delete_chunks_by_resource(
-    resource_id: int,
+    resource_id: UUID,
     service: ChunkService = Depends(get_chunk_service),
     current_user: User = Depends(get_current_user),
 ):
 
-    return await service.delete_chunck_by_resource_id(resource_id)
+    return await service.delete_chunks_by_resource_id(resource_id)
