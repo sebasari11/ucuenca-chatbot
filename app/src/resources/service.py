@@ -4,11 +4,12 @@ from typing import List
 from app.core.logging import get_logger
 from sqlalchemy import delete, select, update
 from fastapi import HTTPException
+from uuid import UUID
 from datetime import datetime
-from app.models.source import Source, SourceType
-from app.services.chunk_service import ChunkService
-from app.schemas.chunk_schema import ChunkCreate
-from app.schemas.source_schema import SourceCreate, SourceUpdate
+from app.src.resources.models import Resource, ResourceType
+from app.src.chunks.service import ChunkService
+from app.src.chunks.schemas import ChunkBase as ChunkCreate
+from app.src.resources.schemas import ResourceCreate, ResourceUpdate
 from app.core.exceptions import NotFoundException, AlreadyExistsException
 from app.utils.pdf_reader import extract_text_from_pdf
 from app.utils.nlp import sentence_chunker, generate_embeddings
@@ -19,18 +20,20 @@ faiss_manager = FaissManager()
 logger = get_logger(__name__)
 
 
-class SourceService:
+class ResourceService:
     def __init__(self, session: AsyncSession):
         self.session: AsyncSession = session
         self.chunk_service = ChunkService(session)
 
-    def _create_pdf_source(self, source: SourceCreate):
-        return Source(name=source.name, type=SourceType.pdf, filepath=source.filepath)
+    def _create_pdf_resource(self, source: ResourceCreate):
+        return Resource(
+            name=source.name, type=ResourceType.pdf, filepath=source.filepath
+        )
 
-    def _create_postgres_source(self, source: SourceCreate):
-        return Source(
+    def _create_postgres_resource(self, source: ResourceCreate):
+        return Resource(
             name=source.name,
-            type=SourceType.postgres,
+            type=ResourceType.postgres,
             host=source.host,
             port=source.port,
             user=source.user,
@@ -38,62 +41,70 @@ class SourceService:
             database=source.database,
         )
 
-    async def create_source(self, source: SourceCreate):
+    async def create_resource(self, source: ResourceCreate):
         if source.type == "pdf":
-            new_source: Source = self._create_pdf_source(source)
+            new_resource: Resource = self._create_pdf_resource(source)
         elif source.type == "postgres":
-            new_source: Source = self._create_postgres_source(source)
+            new_resource: Resource = self._create_postgres_resource(source)
         else:
             raise HTTPException(status_code=400, detail="Tipo de fuente no soportado")
         try:
-            self.session.add(new_source)
+            self.session.add(new_resource)
             await self.session.commit()
-            await self.session.refresh(new_source)
-            return new_source
+            await self.session.refresh(new_resource)
+            return new_resource
         except Exception as e:
             await self.session.rollback()
             logger.error(f"Error intento insertar el Recurso {source.name}: {str(e)}")
             raise
 
-    async def get_by_id(self, source_id: int) -> Source:
-        query = select(Source).where(Source.id == source_id)
+    async def get_by_id(self, resource_id: int) -> Resource:
+        query = select(Resource).where(Resource.id == resource_id)
         result = await self.session.execute(query)
-        source = result.scalar_one_or_none()
-        if not source:
-            raise NotFoundException(f"Recurso con id {source_id} no encontrado.")
-        return source
+        resource = result.scalar_one_or_none()
+        if not resource:
+            raise NotFoundException(f"Recurso con id {resource_id} no encontrado.")
+        return resource
+
+    async def get_by_external_id(self, resource_id: UUID) -> Resource:
+        query = select(Resource).where(Resource.external_id == resource_id)
+        result = await self.session.execute(query)
+        resource = result.scalar_one_or_none()
+        if not resource:
+            raise NotFoundException(f"Recurso con id {resource_id} no encontrado.")
+        return resource
 
     async def get_all_sources(self):
-        query = select(Source)
+        query = select(Resource)
         result = await self.session.execute(query)
         return list(result.scalars().all())
 
-    async def update_source(
-        self, source_id: int, source_data: SourceUpdate, user_id: int
+    async def update_resource(
+        self, resource_id: UUID, resource_data: ResourceUpdate, user_id: int
     ):
-        update_data = source_data.model_dump(exclude_unset=True)
+        update_data = resource_data.model_dump(exclude_unset=True)
         if not update_data:
             raise ValueError("No hay campos para actualizar.")
         query = (
-            update(Source)
-            .where(Source.id == source_id)
+            update(Resource)
+            .where(Resource.external_id == resource_id)
             .values(**update_data, updated_by_id=user_id, updated_at=datetime.now())
         )
         result = await self.session.execute(query)
         if result.rowcount == 0:
-            raise NotFoundException(f"Recurso con id {source_id} no encontrado")
+            raise NotFoundException(f"Recurso con id {resource_id} no encontrado")
         await self.session.commit()
-        return await self.get_by_id(source_id)
+        return await self.get_by_external_id(resource_id)
 
-    async def delete_source(self, source_id: int):
-        query = delete(Source).where(Source.id == source_id)
+    async def delete_resource(self, resource_id: UUID):
+        query = delete(Resource).where(Resource.external_id == resource_id)
         result = await self.session.execute(query)
         if result.rowcount == 0:
-            raise NotFoundException(f"Recurso con id {source_id} no encontrado.")
+            raise NotFoundException(f"Recurso con id {resource_id} no encontrado.")
         await self.session.commit()
-        return {"detail": f"Recurso {source_id} eliminado"}
+        return {"detail": f"Recurso {resource_id} eliminado"}
 
-    async def process_resource(self, resource_id: int, user_id: int):
+    async def process_resource(self, resource_id: UUID, user_id: int):
         resource = await self._get_and_validate_resource(resource_id)
         absolute_path = self._build_safe_absolute_path(resource)
 
@@ -104,15 +115,15 @@ class SourceService:
         chunks = await self._store_chunks(resource.id, chunks, embeddings)
         chunk_ids = [chunk.id for chunk in chunks]
         self._store_in_faiss(embeddings, chunk_ids)
-        await self._mark_resource_as_processed(resource.id, user_id)
+        await self._mark_resource_as_processed(resource.external_id, user_id)
 
         logger.info(
             f"{len(chunks)} chunks procesados y almacenados para recurso {resource_id}"
         )
         return chunks
 
-    async def _get_and_validate_resource(self, resource_id: int):
-        resource: Source = await self.get_by_id(resource_id)
+    async def _get_and_validate_resource(self, resource_id: UUID):
+        resource: Resource = await self.get_by_external_id(resource_id)
 
         if not resource:
             raise NotFoundException(
@@ -152,6 +163,6 @@ class SourceService:
     def _store_in_faiss(self, embeddings: List[List[float]], chunk_ids: List[int]):
         faiss_manager.add_embeddings(embeddings, chunk_ids)
 
-    async def _mark_resource_as_processed(self, resource_id: int, user_id: int):
-        update_data = SourceUpdate(processed=True, updated_by_id=user_id)
-        await self.update_source(resource_id, update_data)
+    async def _mark_resource_as_processed(self, resource_id: UUID, user_id: int):
+        update_data = ResourceUpdate(processed=True)
+        await self.update_resource(resource_id, update_data, user_id)

@@ -3,19 +3,24 @@ from datetime import datetime
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 import enum
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 
 
-class SourceType(str, enum.Enum):
+class ResourceType(str, enum.Enum):
     pdf = "pdf"
     postgres = "postgres"
 
 
-class Source(Base):
-    __tablename__ = "sources"
+class Resource(Base):
+    __tablename__ = "resources"
 
     id = Column(Integer, primary_key=True, index=True)
+    external_id = Column(
+        UUID(as_uuid=True), default=uuid.uuid4, unique=True, index=True, nullable=False
+    )
     name = Column(String, nullable=False)
-    type = Column(Enum(SourceType), nullable=False)
+    type = Column(Enum(ResourceType), nullable=False)
     filepath = Column(String, nullable=True)
     host = Column(String, nullable=True)
     port = Column(Integer, nullable=True)

@@ -1,20 +1,21 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Union, Annotated, Optional, Literal
-from app.schemas.chunk_schema import ChunkResponse
-from app.models.source import SourceType
+from app.src.chunks.schemas import ChunkResponse
+from app.src.resources.models import ResourceType
 from typing import List
+from uuid import UUID
 
 
-class SourceBase(BaseModel):
+class ResourceBase(BaseModel):
     name: str
 
 
-class PDFSourceCreate(SourceBase):
+class PDFResourceCreate(ResourceBase):
     type: Literal["pdf"]
     filepath: str
 
 
-class PostgresSourceCreate(SourceBase):
+class PostgresResourceCreate(ResourceBase):
     type: Literal["postgres"]
     host: str
     port: int
@@ -23,13 +24,13 @@ class PostgresSourceCreate(SourceBase):
     database: str
 
 
-SourceCreate = Annotated[
-    Union[PDFSourceCreate, PostgresSourceCreate], Field(discriminator="type")
+ResourceCreate = Annotated[
+    Union[PDFResourceCreate, PostgresResourceCreate], Field(discriminator="type")
 ]
 
 
-class SourceResponse(SourceBase):
-    id: int
+class ResourceResponse(ResourceBase):
+    external_id: UUID
     type: str
     filepath: Optional[str]
     host: Optional[str]
@@ -40,9 +41,9 @@ class SourceResponse(SourceBase):
     model_config = {"from_attributes": True}
 
 
-class SourceUpdate(BaseModel):
+class ResourceUpdate(BaseModel):
     name: Optional[str] = None
-    type: Optional[SourceType] = None
+    type: Optional[ResourceType] = None
     filepath: Optional[str] = None
     host: Optional[str] = None
     port: Optional[int] = None
@@ -50,17 +51,16 @@ class SourceUpdate(BaseModel):
     password: Optional[str] = None
     database: Optional[str] = None
     processed: Optional[bool] = None
-    updated_by_id: int
 
 
-class SourceUpdateResponse(BaseModel):
+class ResourceUpdateResponse(BaseModel):
     message: str
-    source: SourceResponse
+    resource: ResourceResponse
     model_config = {"from_attributes": True}
 
 
-class SourceProcessResponse(BaseModel):
+class ResourceProcessResponse(BaseModel):
     message: str
-    resource_id: int
+    resource_id: UUID
     chunks: List[ChunkResponse] = []
     model_config: ConfigDict = {"from_attributes": True}
