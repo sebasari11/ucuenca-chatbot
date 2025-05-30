@@ -9,10 +9,12 @@ from app.src.chats.schemas import (
     ChunkSearchResult,
     ChatMessageResponse,
 )
+from uuid import UUID
 from app.src.chunks.service import ChunkService
 from app.core.exceptions import NotFoundException
 from app.utils.nlp import get_embedding, build_contextual_prompt
 from app.faiss_index.manager import FaissManager
+
 
 logger = get_logger(__name__)
 
@@ -30,14 +32,26 @@ class ChatService:
         await self.session.refresh(chat_session)
         return chat_session
 
-    async def get_chat_message_by_session_id(
-        self, chat_session_id: int
+    async def get_chat_messages_by_session_id(
+        self, chat_session_id: UUID
     ) -> List[ChatMessage]:
+        chat_session = await self.get_chat_session_by_external_id(chat_session_id)
+
         query = select(ChatMessage).where(
-            ChatMessage.chat_session_id == chat_session_id
+            ChatMessage.chat_session_id == chat_session.id
         )
-        chat_messages = await self.session.execute(query)
-        return chat_messages.scalars().all()
+        result = await self.session.execute(query)
+        chat_messages = result.scalars().all()
+        return [
+            ChatMessageResponse(
+                id=msg.id,
+                timestamp=msg.timestamp,
+                question=msg.question,
+                answer=msg.answer,
+                chat_session_id=chat_session.external_id,
+            )
+            for msg in chat_messages
+        ]
 
     async def get_chat_session_by_id(self, chat_session_id: int) -> ChatSession:
         chat_session = await self.session.get(ChatSession, chat_session_id)
@@ -45,25 +59,34 @@ class ChatService:
             raise NotFoundException("Chat session not found.")
         return chat_session
 
+    async def get_chat_session_by_external_id(
+        self, chat_session_id: UUID
+    ) -> ChatSession:
+        query = select(ChatSession).where(ChatSession.external_id == chat_session_id)
+        chat_session = await self.session.execute(query)
+        if not chat_session:
+            raise NotFoundException("Chat session not found.")
+        return chat_session.scalar_one_or_none()
+
     async def add_message_to_chat_session(
         self, message: ChatMessageCreate
     ) -> ChatMessage:
-        chat_message = ChatMessage(**message.model_dump())
+        chat_session = await self.get_chat_session_by_external_id(
+            message.chat_session_id
+        )
+        message_data = message.model_dump()
+        message_data["chat_session_id"] = chat_session.id
+        chat_message = ChatMessage(**message_data)
         self.session.add(chat_message)
         await self.session.commit()
         await self.session.refresh(chat_message)
+
         return chat_message
 
     async def answer_question(
-        self, chat_session_id: int, question: str, model: str, top_k: int
+        self, chat_session_id: UUID, question: str, model: str, top_k: int
     ) -> ChatMessageResponse:
         chunks = await self.search_embeddings(question, top_k)
-        print(f"Chunks encontrados: {len(chunks)}")
-        for c in chunks:
-            print("*" * 20)
-            print(f"ID: {c.chunk_id}, Similarity: {c.similarity}")
-            print(f"Content: {c.content}")
-            print("*" * 20)
         if not chunks:
             raise NotFoundException("No se encontraron resultados relevantes.")
 
@@ -83,7 +106,6 @@ class ChatService:
                 model=model,
             )
         )
-        print(f"Chat message: {chat_message.id}")
         return ChatMessageResponse(
             id=chat_message.id,
             answer=answer,
@@ -133,8 +155,8 @@ class ChatService:
         except httpx.HTTPError as e:
             raise RuntimeError(f"Error al comunicarse con Ollama ({model}): {e}")
 
-    async def delete_chat_session(self, chat_session_id: int) -> dict:
-        query = delete(ChatSession).where(ChatSession.id == chat_session_id)
+    async def delete_chat_session(self, chat_session_id: UUID) -> dict:
+        query = delete(ChatSession).where(ChatSession.external_id == chat_session_id)
         result = await self.session.execute(query)
         if result.rowcount == 0:
             raise NotFoundException("Chat session not found.")
