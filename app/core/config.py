@@ -1,3 +1,4 @@
+from typing import List
 from dotenv import load_dotenv
 import os
 
@@ -16,6 +17,7 @@ class Settings:
     DEEPSEEK_API_KEY: str | None = os.getenv("DEEPSEEK_API_KEY")
     SECRET_KEY: str = os.getenv("SECRET_KEY")
     ALGORITHM: str = os.getenv("ALGORITHM")
+    CORS_ORIGINS: List[str] = os.getenv("CORS_ORIGINS", "").split(",")
 
 
 settings = Settings()

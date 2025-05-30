@@ -4,6 +4,7 @@ from sqlalchemy import delete, select, or_
 from fastapi import HTTPException, status
 from typing import List
 from datetime import datetime
+from uuid import UUID
 from app.core.security import verify_password
 from app.core.logging import get_logger
 from app.core.exceptions import NotFoundException
@@ -46,10 +47,10 @@ class UserService:
             raise NotFoundException("No se encontraron usuarios.")
         return users
 
-    async def update_user(self, user_id: int, update_data: UserUpdate) -> User:
+    async def update_user(self, user_id: UUID, update_data: UserUpdate) -> User:
         logger.debug(f"Updating user with id: {user_id}")
 
-        query = select(User).where(User.id == user_id)
+        query = select(User).where(User.external_id == user_id)
         result = await self.session.execute(query)
         user = result.scalar_one_or_none()
 

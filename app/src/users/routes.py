@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
 from app.core.database import get_session
 from app.core.security import create_access_token
 from app.src.users.service import UserService
@@ -41,18 +42,17 @@ async def list_users(
     return await service.get_users()
 
 
-@router.get("/{user_id}", response_model=list[ChatSessionResponse])
-async def get_user_chat_sessions(
-    user_id: int,
+@router.get("/me/chat_sessions", response_model=list[ChatSessionResponse])
+async def get_my_chat_sessions(
     service: UserService = Depends(get_user_service),
     current_user: User = Depends(get_current_user),
 ):
-    return await service.get_chat_sessions_by_user_id(user_id)
+    return await service.get_chat_sessions_by_user_id(current_user.id)
 
 
 @router.put("/{user_id}", response_model=UserResponse)
 async def update_user(
-    user_id: int,
+    user_id: UUID,
     user_update: UserUpdate,
     service: UserService = Depends(get_user_service),
     current_user: User = Depends(get_current_user),
