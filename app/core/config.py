@@ -6,7 +6,8 @@ load_dotenv()
 
 
 class Settings:
-    PROJECT_NAME: str = "Chatbot UCUENCA - G.I Software"
+    PROJECT_NAME: str = "U C A L M A"
+    "Chatbot UCUENCA - G.I Software"
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     DEBUG: bool = os.getenv("DEBUG", "true").lower() == "true"
     DB_USER: str = os.getenv("DB_USER")
