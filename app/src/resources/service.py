@@ -144,7 +144,7 @@ class ResourceService:
 
         if not absolute_path.exists():
             raise NotFoundException(f"Archivo no encontrado: {absolute_path}")
-
+        logger.debug("Absolute Path: %s", absolute_path)
         return absolute_path
 
     async def _store_chunks(
