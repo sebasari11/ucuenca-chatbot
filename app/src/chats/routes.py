@@ -64,3 +64,12 @@ async def delete_chat_session(
     current_user: User = Depends(get_current_user),
 ):
     return await service.delete_chat_session(chat_session_id)
+
+
+@router.put("/sessions/{chat_session_id}/name", response_model=ChatSessionResponse)
+async def update_chat_session_name(
+    chat_session_id: UUID,
+    service: ChatService = Depends(get_chat_service),
+    current_user: User = Depends(get_current_user),
+):
+    return await service.generate_chat_session_name(chat_session_id)

@@ -12,7 +12,11 @@ from app.src.chats.schemas import (
 from uuid import UUID
 from app.src.chunks.service import ChunkService
 from app.core.exceptions import NotFoundException
-from app.utils.nlp import get_embedding, build_contextual_prompt
+from app.utils.nlp import (
+    get_embedding,
+    build_contextual_prompt,
+    build_chat_session_name_prompt,
+)
 from app.faiss_index.manager import FaissManager
 
 
@@ -26,7 +30,7 @@ class ChatService:
         self.faiss = FaissManager()
 
     async def create_chat_session(self, user_id: int) -> ChatSession:
-        chat_session = ChatSession(user_id=user_id)
+        chat_session = ChatSession(user_id=user_id, session_name="Nuevo Chat")
         self.session.add(chat_session)
         await self.session.commit()
         await self.session.refresh(chat_session)
@@ -162,3 +166,22 @@ class ChatService:
             raise NotFoundException("Chat session not found.")
         await self.session.commit()
         return {"detail": "Chat session deleted."}
+
+    async def generate_chat_session_name(self, chat_session_id: UUID) -> str:
+        chat_session = await self.get_chat_session_by_external_id(chat_session_id)
+        message_context = [
+            f"Question: {msg.question} \n Answer: {msg.answer}"
+            for msg in chat_session.messages
+        ]
+        if not chat_session:
+            raise NotFoundException("Chat session not found.")
+        chat_session_name = "Nuevo Chat"
+        if len(message_context) > 0:
+            prompt = build_chat_session_name_prompt("\n".join(message_context))
+            chat_session_name = await self._generate_answer_with_model(
+                "gemma3:latest", prompt
+            )
+        chat_session.session_name = chat_session_name
+        await self.session.commit()
+        await self.session.refresh(chat_session)
+        return chat_session

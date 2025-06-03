@@ -160,3 +160,11 @@ Pregunta:
 {question}
 
 Respuesta:"""
+
+
+def build_chat_session_name_prompt(context: str) -> str:
+    return f"""Crea un nombre para una sesión de chat que resuma el contexto proporcionado. El nombre debe ser breve, descriptivo y captar la esencia del contenido. No incluyas ningún otro texto o explicación, solo el nombre.
+
+Contexto:
+{context}
+"""
