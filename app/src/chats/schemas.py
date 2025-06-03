@@ -23,12 +23,14 @@ class ChatMessageResponse(BaseModel):
 class ChatSessionResponse(BaseModel):
     external_id: UUID
     created_at: datetime
+    session_name: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 
 class ChatSessionResponseWithMessages(ChatSessionResponse):
     messages: List[ChatMessageResponse] = []
     user_id: UUID | None = None
+    session_name: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 

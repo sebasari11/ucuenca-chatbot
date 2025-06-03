@@ -17,6 +17,7 @@ class ChatSession(Base):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     created_at = Column(DateTime, default=datetime.now())
+    session_name = Column(Text, nullable=True)
 
     messages = relationship(
         "ChatMessage",
