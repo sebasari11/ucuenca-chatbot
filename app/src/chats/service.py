@@ -155,7 +155,9 @@ class ChatService:
                     json={"model": model, "prompt": prompt, "stream": False},
                 )
                 response.raise_for_status()
-                return response.json().get("response", "").strip()
+                json_response = response.json()
+                logger.info(f"Response from Ollama ({model}): {json_response}")
+                return json_response.get("response", "").strip()
         except httpx.HTTPError as e:
             raise RuntimeError(f"Error al comunicarse con Ollama ({model}): {e}")
 
