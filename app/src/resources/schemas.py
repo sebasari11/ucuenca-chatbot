@@ -1,8 +1,8 @@
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Union, Annotated, Optional, Literal
+from typing import Union, Annotated, Optional, Literal, List
 from app.src.chunks.schemas import ChunkResponse
 from app.src.resources.models import ResourceType
-from typing import List
+from datetime import datetime
 from uuid import UUID
 
 
@@ -38,6 +38,8 @@ class ResourceResponse(ResourceBase):
     user: Optional[str]
     database: Optional[str]
     processed: Optional[bool]
+    created_at: Optional[datetime]
+    updated_at: Optional[datetime]
     model_config = {"from_attributes": True}
 
 
