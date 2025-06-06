@@ -162,6 +162,30 @@ Pregunta:
 Respuesta:"""
 
 
+def build_context_prompt3(context: str, question: str) -> str:
+    return f"""Eres un asistente de salud mental virtual. Tu objetivo es brindar apoyo y respuestas útiles, priorizando la precisión y el bienestar del usuario.
+
+Por favor, utiliza el "Contexto" proporcionado como tu **fuente principal de información** para responder a la siguiente pregunta. Si el contexto no es suficiente para ofrecer una respuesta completa o clara, puedes **complementar la información con tu conocimiento general** para formular una respuesta útil y segura.
+
+Si el contexto es **totalmente insuficiente** o la pregunta está fuera de tu alcance como asistente de salud mental, responde **únicamente** con el siguiente mensaje:
+
+"Lo siento 😕, no tengo suficiente información para responder a eso por el momento. Mi objetivo es darte respuestas precisas y seguras. ¿Hay algo más en lo que pueda ayudarte hoy? 😊"
+
+---
+
+Contexto:
+{context}
+
+---
+
+Pregunta:
+{question}
+
+---
+
+Respuesta:"""
+
+
 def build_chat_session_name_prompt(context: str) -> str:
     return f"""Crea un nombre para una sesión de chat que resuma el contexto proporcionado. El nombre debe ser breve, descriptivo y captar la esencia del contenido. No incluyas ningún otro texto o explicación, solo el nombre.
 
