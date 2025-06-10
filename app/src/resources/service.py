@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List
 from app.core.logging import get_logger
 from sqlalchemy import delete, select, update
+from sqlalchemy.orm import selectinload
 from fastapi import HTTPException
 from uuid import UUID
 from datetime import datetime
@@ -67,14 +68,21 @@ class ResourceService:
         return resource
 
     async def get_by_external_id(self, resource_id: UUID) -> Resource:
-        query = select(Resource).where(Resource.external_id == resource_id)
+        query = (
+            select(Resource)
+            .options(selectinload(Resource.chunks))
+            .where(Resource.external_id == resource_id)
+        )
         result = await self.session.execute(query)
         resource = result.scalar_one_or_none()
+        logger.debug(f"Recurso encontrado: {resource}")
+        logger.debug(f"Chunks Encontrados: {resource.chunks}")
+
         if not resource:
             raise NotFoundException(f"Recurso con id {resource_id} no encontrado.")
         return resource
 
-    async def get_all_sources(self):
+    async def get_all_resources(self):
         query = select(Resource)
         result = await self.session.execute(query)
         return list(result.scalars().all())

@@ -1,9 +1,12 @@
 from typing import List, Literal
+import httpx
 from sentence_transformers import SentenceTransformer
 import nltk
 import requests
 import numpy as np
 from openai import OpenAI
+from google import genai
+from google.genai import types
 from sklearn.decomposition import PCA
 from app.core.config import settings
 
@@ -148,7 +151,7 @@ Pregunta:
 Respuesta:"""
 
 
-def build_contextual_prompt(context: str, question: str) -> str:
+def build_contextual_prompt3(context: str, question: str) -> str:
     return f"""Responde a la siguiente pregunta utilizando **exclusivamente** la información proporcionada en el contexto. 
 Si el contexto no contiene datos suficientes para responder con claridad, limita tu respuesta **únicamente** a este mensaje, sin agregar nada más:
 "Lo siento 😕, no tengo suficiente información para responder a eso por el momento. ¿Puedo ayudarte con algo más? 😊"
@@ -162,9 +165,8 @@ Pregunta:
 Respuesta:"""
 
 
-def build_context_prompt3(context: str, question: str) -> str:
-    return f"""Eres un asistente de salud mental virtual. Tu objetivo es brindar apoyo y respuestas útiles, priorizando la precisión y el bienestar del usuario.
-
+def build_contextual_prompt(context: str, question: str) -> str:
+    return f"""
 Por favor, utiliza el "Contexto" proporcionado como tu **fuente principal de información** para responder a la siguiente pregunta. Si el contexto no es suficiente para ofrecer una respuesta completa o clara, puedes **complementar la información con tu conocimiento general** para formular una respuesta útil y segura.
 
 Si el contexto es **totalmente insuficiente** o la pregunta está fuera de tu alcance como asistente de salud mental, responde **únicamente** con el siguiente mensaje:
@@ -192,3 +194,33 @@ def build_chat_session_name_prompt(context: str) -> str:
 Contexto:
 {context}
 """
+
+
+async def answer_with_gemini(prompt: str) -> str:
+    client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        config=types.GenerateContentConfig(
+            system_instruction="Eres un asistente de salud mental virtual llamado UCALMA. Tu objetivo es brindar apoyo y respuestas útiles, priorizando la precisión y el bienestar del usuario."
+        ),
+        contents=prompt,
+    )
+    return response.text
+
+
+async def answer_with_ollama(model: str, prompt: str) -> str:
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "http://localhost:11434/api/generate",
+                json={
+                    "model": model,
+                    "prompt": f"Eres un asistente de salud mental virtual llamado UCALMA. Tu objetivo es brindar apoyo y respuestas útiles, priorizando la precisión y el bienestar del usuario. \n {prompt}",
+                    "stream": False,
+                },
+            )
+            response.raise_for_status()
+            json_response = response.json()
+            return json_response.get("response", "").strip()
+    except httpx.HTTPError as e:
+        raise RuntimeError(f"Error al comunicarse con Ollama ({model}): {e}")

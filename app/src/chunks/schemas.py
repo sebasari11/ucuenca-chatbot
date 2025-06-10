@@ -1,9 +1,10 @@
 from pydantic import BaseModel, ConfigDict
-from typing import List
+from typing import List, Optional
+from uuid import UUID
 
 
 class ChunkBase(BaseModel):
-    resource_id: int
+    resource_external_id: Optional[UUID] = None
     chunk_text: str
     embedding: List[float]
     order: int

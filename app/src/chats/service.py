@@ -1,6 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
-import httpx
 from sqlalchemy import select, delete
 from app.core.logging import get_logger
 from app.src.chats.models import ChatSession, ChatMessage
@@ -13,6 +12,8 @@ from uuid import UUID
 from app.src.chunks.service import ChunkService
 from app.core.exceptions import NotFoundException
 from app.utils.nlp import (
+    answer_with_gemini,
+    answer_with_ollama,
     get_embedding,
     build_contextual_prompt,
     build_chat_session_name_prompt,
@@ -148,18 +149,12 @@ class ChatService:
         return results
 
     async def _generate_answer_with_model(self, model: str, prompt: str) -> str:
-        try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    "http://localhost:11434/api/generate",
-                    json={"model": model, "prompt": prompt, "stream": False},
-                )
-                response.raise_for_status()
-                json_response = response.json()
-                logger.info(f"Response from Ollama ({model}): {json_response}")
-                return json_response.get("response", "").strip()
-        except httpx.HTTPError as e:
-            raise RuntimeError(f"Error al comunicarse con Ollama ({model}): {e}")
+        if model == "gemma3:latest":
+            return await answer_with_ollama(model, prompt)
+        elif model == "gemini":
+            return await answer_with_gemini(prompt)
+        else:
+            raise ValueError(f"Unsupported model: {model}")
 
     async def delete_chat_session(self, chat_session_id: UUID) -> dict:
         query = delete(ChatSession).where(ChatSession.external_id == chat_session_id)

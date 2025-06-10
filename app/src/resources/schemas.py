@@ -29,17 +29,23 @@ ResourceCreate = Annotated[
 ]
 
 
-class ResourceResponse(ResourceBase):
+class ResourceResponseBase(ResourceBase):
     external_id: UUID
     type: str
     filepath: Optional[str]
-    host: Optional[str]
-    port: Optional[int]
-    user: Optional[str]
-    database: Optional[str]
-    processed: Optional[bool]
-    created_at: Optional[datetime]
-    updated_at: Optional[datetime]
+    processed: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    model_config = {"from_attributes": True}
+
+
+class ResourceResponse(ResourceResponseBase):
+    host: Optional[str] = None
+    port: Optional[int] = None
+    user: Optional[str] = None
+    password: Optional[str] = None
+    database: Optional[str] = None
+    chunks: List[ChunkResponse] = []
     model_config = {"from_attributes": True}
 
 

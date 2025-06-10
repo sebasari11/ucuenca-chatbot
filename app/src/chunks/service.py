@@ -35,14 +35,17 @@ class ChunkService:
         result = await self.session.execute(query)
         return list(result.scalars().all())
 
-    async def get_chunks_by_resource(self, resource_id: UUID):
+    async def get_chunks_by_resource_id(self, resource_id: UUID):
         query = (
             select(ResourceChunk)
             .where(ResourceChunk.resource_id == self.resourceAlias.id)
             .where(self.resourceAlias.external_id == resource_id)
         )
         result = await self.session.execute(query)
-        return list(result.scalars().all())
+        chunks = list(result.scalars().all())
+        for chunk in chunks:
+            chunk.resource_external_id = chunk.resource.external_id
+        return chunks
 
     async def get_chunk_by_id(self, chunk_id: int):
         query = select(ResourceChunk).where(ResourceChunk.id == chunk_id)

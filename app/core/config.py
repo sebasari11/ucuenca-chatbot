@@ -19,6 +19,7 @@ class Settings:
     SECRET_KEY: str = os.getenv("SECRET_KEY")
     ALGORITHM: str = os.getenv("ALGORITHM")
     CORS_ORIGINS: List[str] = os.getenv("CORS_ORIGINS", "").split(",")
+    GEMINI_API_KEY: str | None = os.getenv("GEMINI_API_KEY")
 
 
 settings = Settings()

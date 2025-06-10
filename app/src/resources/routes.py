@@ -7,6 +7,7 @@ from app.src.users.models import User
 from app.src.resources.schemas import (
     ResourceCreate,
     ResourceResponse,
+    ResourceResponseBase,
     ResourceUpdate,
     ResourceUpdateResponse,
     ResourceProcessResponse,
@@ -23,7 +24,7 @@ def get_resource_service(
     return ResourceService(session)
 
 
-@router.post("/", response_model=ResourceResponse)
+@router.post("/", response_model=ResourceResponseBase)
 async def create_resource(
     resource: ResourceCreate,
     service: ResourceService = Depends(get_resource_service),
@@ -49,12 +50,12 @@ async def process_resource(
         raise HTTPException(status_code=500, detail=f"exepcion => {str(e)}")
 
 
-@router.get("/", response_model=list[ResourceResponse])
+@router.get("/", response_model=list[ResourceResponseBase])
 async def list_resources(
     service: ResourceService = Depends(get_resource_service),
     current_user: User = Depends(get_current_user),
 ):
-    return await service.get_all_sources()
+    return await service.get_all_resources()
 
 
 @router.get("/{resource_id}", response_model=ResourceResponse)
