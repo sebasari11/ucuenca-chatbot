@@ -91,14 +91,14 @@ class ChatService:
     async def answer_question(
         self, chat_session_id: UUID, question: str, model: str, top_k: int
     ) -> ChatMessageResponse:
-        chunks = await self.search_embeddings(question, top_k)
+        chunks = await self.search_embeddings(question, top_k)        
         if not chunks:
             raise NotFoundException("No se encontraron resultados relevantes.")
 
         context = "\n".join([chunk.content for chunk in chunks])
         prompt = build_contextual_prompt(context, question)
 
-        answer = await self._generate_answer_with_model(model, prompt)
+        answer = await self._generate_answer_with_model(model, prompt, chat_session_id)
 
         if not answer:
             raise RuntimeError("No se pudo generar una respuesta.")
@@ -148,11 +148,28 @@ class ChatService:
 
         return results
 
-    async def _generate_answer_with_model(self, model: str, prompt: str) -> str:
+    def _format_history_for_gemini(self, messages_from_db: List[ChatMessage]) -> List[dict]:
+        formatted_history = []
+        for msg in messages_from_db:
+            formatted_history.append({
+                "role": "user",
+                "parts": [{"text": msg.question}]
+            })
+            formatted_history.append({
+                "role": "model",
+                "parts": [{"text": msg.answer}]
+            })
+        return formatted_history
+
+
+    async def _generate_answer_with_model(self, model: str, prompt: str, chat_session_id: UUID = None) -> str:
         if model == "gemma3:latest":
             return await answer_with_ollama(model, prompt)
         elif model == "gemini":
-            return await answer_with_gemini(prompt)
+            chat_history = await self.get_chat_messages_by_session_id(chat_session_id)
+            formatted_history = self._format_history_for_gemini(chat_history)
+            logger.info(f"Formatted history for Gemini: {formatted_history}")
+            return await answer_with_gemini(prompt, formatted_history)
         else:
             raise ValueError(f"Unsupported model: {model}")
 

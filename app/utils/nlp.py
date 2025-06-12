@@ -196,14 +196,23 @@ Contexto:
 """
 
 
-async def answer_with_gemini(prompt: str) -> str:
+async def answer_with_gemini(prompt: str, chat_history: List[dict]) -> str:
+    
     client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    current_user_message_content = {
+        "role": "user",
+        "parts": [{"text": prompt}]
+    }
+    contents = chat_history + [current_user_message_content]
+    print("chat_history:", chat_history)
+    print("current_user_message_content:", current_user_message_content)
+    print("contents:", contents)
     response = client.models.generate_content(
         model="gemini-2.0-flash",
         config=types.GenerateContentConfig(
             system_instruction="Eres un asistente de salud mental virtual llamado UCALMA. Tu objetivo es brindar apoyo y respuestas útiles, priorizando la precisión y el bienestar del usuario."
         ),
-        contents=prompt,
+        contents=contents,
     )
     return response.text
 
