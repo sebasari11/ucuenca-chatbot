@@ -31,7 +31,11 @@ async def login_user(
 ):
     user = await service.authenticate_user(form_data.username, form_data.password)
     access_token = create_access_token(data={"sub": user.username})
-    return {"access_token": access_token, "token_type": "bearer", "role": user.role.value}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "role": user.role.value,
+    }
 
 
 @router.get("/", response_model=list[UserResponse])
@@ -55,9 +59,10 @@ async def update_user(
     user_id: UUID,
     user_update: UserUpdate,
     service: UserService = Depends(get_user_service),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
 ):
     return await service.update_user(user_id, user_update)
+
 
 @router.get("/me", response_model=UserResponse)
 async def get_profile(current_user: User = Depends(get_current_user)):
