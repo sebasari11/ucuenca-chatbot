@@ -57,7 +57,7 @@ class UserService:
         if not user:
             raise NotFoundException(f"User with id {user_id} not found.")
 
-        if not any([update_data.password, update_data.full_name]):
+        if not any([update_data.password, update_data.full_name, update_data.role]):
             raise ValueError("No data provided for update.")
 
         if update_data.full_name:
@@ -65,6 +65,9 @@ class UserService:
 
         if update_data.password:
             user.hashed_password = self._get_password_hash(update_data.password)
+
+        if update_data.role:
+            user.role = update_data.role
 
         user.updated_at = datetime.now()
 
