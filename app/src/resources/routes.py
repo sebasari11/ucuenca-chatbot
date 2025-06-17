@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
-from app.api.deps import get_current_user
+from app.api.deps import get_current_admin_user
 from app.src.resources.models import Resource
 from app.src.users.models import User
 from app.src.resources.schemas import (
@@ -28,7 +28,7 @@ def get_resource_service(
 async def create_resource(
     resource: ResourceCreate,
     service: ResourceService = Depends(get_resource_service),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
 ):
     return await service.create_resource(resource)
 
@@ -37,7 +37,7 @@ async def create_resource(
 async def process_resource(
     resource_id: UUID,
     service: ResourceService = Depends(get_resource_service),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
 ):
     try:
         chunks = await service.process_resource(resource_id, current_user.id)
@@ -53,7 +53,7 @@ async def process_resource(
 @router.get("/", response_model=list[ResourceResponseBase])
 async def list_resources(
     service: ResourceService = Depends(get_resource_service),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
 ):
     return await service.get_all_resources()
 
@@ -62,7 +62,7 @@ async def list_resources(
 async def get_resource_by_id(
     resource_id: UUID,
     service: ResourceService = Depends(get_resource_service),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
 ):
     return await service.get_by_external_id(resource_id)
 
@@ -72,7 +72,7 @@ async def update_resource(
     resource_id: UUID,
     resource_update: ResourceUpdate,
     service: ResourceService = Depends(get_resource_service),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
 ):
     updated_resource: Resource = await service.update_resource(
         resource_id, resource_update, current_user.id
@@ -84,6 +84,6 @@ async def update_resource(
 async def delete_resource(
     resource_id: UUID,
     service: ResourceService = Depends(get_resource_service),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
 ):
     return await service.delete_resource(resource_id)

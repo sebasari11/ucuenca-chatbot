@@ -7,7 +7,7 @@ from app.core.security import create_access_token
 from app.src.users.service import UserService
 from app.src.users.schemas import UserCreate, UserResponse, UserUpdate, Token
 from app.src.chats.schemas import ChatSessionResponse
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_current_admin_user
 from app.src.users.models import User
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -31,13 +31,13 @@ async def login_user(
 ):
     user = await service.authenticate_user(form_data.username, form_data.password)
     access_token = create_access_token(data={"sub": user.username})
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "role": user.role.value}
 
 
 @router.get("/", response_model=list[UserResponse])
 async def list_users(
     service: UserService = Depends(get_user_service),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
 ):
     return await service.get_users()
 
@@ -58,3 +58,7 @@ async def update_user(
     current_user: User = Depends(get_current_user),
 ):
     return await service.update_user(user_id, user_update)
+
+@router.get("/me", response_model=UserResponse)
+async def get_profile(current_user: User = Depends(get_current_user)):
+    return current_user
