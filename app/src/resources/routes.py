@@ -6,6 +6,7 @@ from app.src.resources.models import Resource
 from app.src.users.models import User
 from app.src.resources.schemas import (
     ResourceCreate,
+    ResourcePDFUrl,
     ResourceResponse,
     ResourceResponseBase,
     ResourceUpdate,
@@ -49,6 +50,37 @@ async def process_resource(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"exepcion => {str(e)}")
 
+# @router.post("/process-url-pdf")
+# async def process_url_pdf(
+#     payload: ResourcePDFUrl,
+#     current_user: User = Depends(get_current_admin_user)
+# ):
+#     try:
+#         response = requests.get(payload.url)
+#         response.raise_for_status()
+
+#         if "application/pdf" not in response.headers.get("Content-Type", ""):
+#             raise HTTPException(status_code=400, detail="La URL no apunta a un archivo PDF válido.")
+
+#         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+#             tmp_file.write(response.content)
+#             tmp_path = tmp_file.name
+
+#         # Usa tu nueva función modular
+#         chunks, embeddings = process_pdf_file(tmp_path)
+
+#         # Opcional: almacenar en FAISS, aunque no se asocie a un recurso
+#         chunk_ids = list(range(len(chunks)))  # IDs simulados si no hay persistencia
+#         store_in_faiss(embeddings, chunk_ids)
+
+#         return {
+#             "message": "PDF desde URL procesado correctamente",
+#             "num_chunks": len(chunks),
+#             "preview": chunks[:3],  # para ver algunos chunks
+#         }
+
+#     except requests.RequestException as e:
+#         raise HTTPException(status_code=400, detail=f"Error al descargar el PDF: {str(e)}")
 
 @router.get("/", response_model=list[ResourceResponseBase])
 async def list_resources(

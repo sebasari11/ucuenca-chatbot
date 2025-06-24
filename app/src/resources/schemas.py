@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 from typing import Union, Annotated, Optional, Literal, List
 from app.src.chunks.schemas import ChunkResponse
 from app.src.resources.models import ResourceType
@@ -9,12 +9,15 @@ from uuid import UUID
 class ResourceBase(BaseModel):
     name: str
 
-
 class PDFResourceCreate(ResourceBase):
     type: Literal["pdf"]
     filepath: str
 
-
+class URLResourceCreate(BaseModel):
+    name: Optional[str] = None
+    type: Literal["url"]
+    filepath: HttpUrl
+    
 class PostgresResourceCreate(ResourceBase):
     type: Literal["postgres"]
     host: str
@@ -25,7 +28,7 @@ class PostgresResourceCreate(ResourceBase):
 
 
 ResourceCreate = Annotated[
-    Union[PDFResourceCreate, PostgresResourceCreate], Field(discriminator="type")
+    Union[PDFResourceCreate, PostgresResourceCreate, URLResourceCreate], Field(discriminator="type")
 ]
 
 
@@ -72,3 +75,6 @@ class ResourceProcessResponse(BaseModel):
     resource_id: UUID
     chunks: List[ChunkResponse] = []
     model_config: ConfigDict = {"from_attributes": True}
+    
+class ResourcePDFUrl(BaseModel):
+    url: HttpUrl
