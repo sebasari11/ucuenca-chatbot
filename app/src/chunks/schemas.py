@@ -4,7 +4,7 @@ from uuid import UUID
 
 
 class ChunkBase(BaseModel):
-    resource_external_id: Optional[UUID] = None
+    resource_id : int     
     chunk_text: str
     embedding: List[float]
     order: int
