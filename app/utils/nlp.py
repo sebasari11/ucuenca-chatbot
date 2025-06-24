@@ -90,7 +90,7 @@ def get_embedding(
 
     if backend == "sentence":
         embedding = sentence_model.encode(question, convert_to_numpy=True)
-        print(f"Dimensión del embedding: {embedding.shape}")  # Verifica la dimensión
+        print(f"Dimensión del embedding: {embedding.shape}")
         return embedding.tolist()
 
     if backend == "ollama":
