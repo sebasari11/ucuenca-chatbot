@@ -63,3 +63,8 @@ class FaissManager:
             with open(ID_MAP_PATH, "rb") as f:
                 self.id_map = pickle.load(f)
                 logger.info("Mapa de IDs cargado desde el disco")
+    
+    def reset_index(self, dim: int = 384):
+        self.generate_index(dim)
+        self.id_map = {}
+        self.save()
