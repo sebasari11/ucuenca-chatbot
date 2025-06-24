@@ -127,7 +127,7 @@ class ChatService:
 
         results = []
         for chunk_id, similarity in zip(chunk_ids, similarities):
-            chunk = await self.chunk_service.get_chunk_by_id(chunk_id)
+            chunk = await self.chunk_service.get_active_chunk_by_id(chunk_id)
             if chunk:
                 results.append(
                     ChunkSearchResult(
