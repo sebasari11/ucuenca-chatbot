@@ -204,9 +204,6 @@ async def answer_with_gemini(prompt: str, chat_history: List[dict]) -> str:
         "parts": [{"text": prompt}]
     }
     contents = chat_history + [current_user_message_content]
-    print("chat_history:", chat_history)
-    print("current_user_message_content:", current_user_message_content)
-    print("contents:", contents)
     response = client.models.generate_content(
         model="gemini-2.0-flash",
         config=types.GenerateContentConfig(
