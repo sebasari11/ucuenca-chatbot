@@ -65,7 +65,7 @@ class ChunkService:
                 Resource.active.is_(True)
             )
         )
-        result = await self.db.execute(query)
+        result = await self.session.execute(query)
         return result.scalar_one_or_none()
 
     async def delete_chunk(self, chunk_id: int):
