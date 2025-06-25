@@ -193,7 +193,7 @@ class ChatService:
         if len(message_context) > 0:
             prompt = build_chat_session_name_prompt("\n".join(message_context))
             chat_session_name = await self._generate_answer_with_model(
-                "gemma3:latest", prompt
+                model="gemini", prompt=prompt, chat_session_id=chat_session_id
             )
         chat_session.session_name = chat_session_name
         await self.session.commit()
