@@ -92,6 +92,20 @@ class ResourceService:
             logger.error(f"Error al insertar recurso {source.name or source.filepath}: {str(e)}")
             raise e
 
+    async def create_resource_from_local(self, name: str, filepath: str, user_id: int):
+        new_resource = Resource(
+        name=name,
+        type=ResourceType.pdf,
+        filepath=filepath,
+        processed=False,
+        created_by_id=user_id,
+        updated_by_id=user_id,
+    )
+        self.session.add(new_resource)
+        await self.session.commit()
+        await self.session.refresh(new_resource)
+        return new_resource
+
     async def get_by_id(self, resource_id: int) -> Resource:
         query = select(Resource).where(Resource.id == resource_id)
         result = await self.session.execute(query)
@@ -153,7 +167,11 @@ class ResourceService:
                         tmp.write(await resp.read())
                         tmp_path = Path(tmp.name)
         else:
-            tmp_path = self._build_safe_absolute_path(resource)
+            path = Path(resource.filepath)
+            if path.is_absolute() and path.exists():
+                tmp_path = path
+            else:
+                tmp_path = self._build_safe_absolute_path(resource)
         text = extract_text_from_pdf(tmp_path)
         chunks = sentence_chunker(text, max_sentences=10)
         embeddings = generate_embeddings(chunks)

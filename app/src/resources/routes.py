@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
 from app.api.deps import get_current_admin_user
@@ -24,6 +26,30 @@ def get_resource_service(
 ) -> ResourceService:
     return ResourceService(session)
 
+@router.post("/process_local", response_model=ResourceResponse)
+async def process_local_resource(
+    file: UploadFile = File(...),
+    name: str = Form(...),
+    service: ResourceService = Depends(get_resource_service),
+    current_user: User = Depends(get_current_admin_user),
+):
+    try:
+        tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
+        tmp.write(await file.read())
+        tmp_path = Path(tmp.name)
+        tmp.close()
+
+        new_resource = await service.create_resource_from_local(
+            name=name,
+            filepath=str(tmp_path),
+            user_id=current_user.id,
+        )
+
+        await service.process_resource(new_resource.external_id, current_user.id)
+        return await service.get_by_external_id(new_resource.external_id)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al procesar recurso local: {str(e)}")
 
 @router.post("/", response_model=ResourceResponseBase)
 async def create_resource(
