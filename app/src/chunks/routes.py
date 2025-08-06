@@ -34,12 +34,12 @@ async def get_all_chunks(
 
 
 @router.get("/by_resource/{resource_id}", response_model=List[ChunkResponse])
-async def get_chunks_by_resource(
+async def get_chunks_by_resource_id(
     resource_id: UUID,
     service: ChunkService = Depends(get_chunk_service),
     current_user: User = Depends(get_current_user),
 ):
-    return await service.get_chunks_by_resource(resource_id)
+    return await service.get_chunks_by_resource_id(resource_id)
 
 
 @router.delete("/{chunk_id}")

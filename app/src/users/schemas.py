@@ -17,11 +17,13 @@ class UserResponse(BaseModel):
     email: EmailStr
     created_at: datetime
     full_name: str
+    role: Optional[str] = None
     model_config: ConfigDict = {"from_attributes": True}
 
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
+    role: Optional[str] = None
     password: Optional[str] = Field(default=None, min_length=8)
 
     model_config: ConfigDict = {"from_attributes": True}

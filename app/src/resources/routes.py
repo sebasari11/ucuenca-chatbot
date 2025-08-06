@@ -1,12 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
-from app.api.deps import get_current_user
+from app.api.deps import get_current_admin_user
 from app.src.resources.models import Resource
 from app.src.users.models import User
 from app.src.resources.schemas import (
     ResourceCreate,
+    ResourcePDFUrl,
     ResourceResponse,
+    ResourceResponseBase,
     ResourceUpdate,
     ResourceUpdateResponse,
     ResourceProcessResponse,
@@ -14,27 +18,53 @@ from app.src.resources.schemas import (
 from app.src.resources.service import ResourceService
 from uuid import UUID
 
-router = APIRouter(prefix="/sources", tags=["Sources"])
+router = APIRouter(prefix="/resources", tags=["Resources"])
 
 
-def get_source_service(session: AsyncSession = Depends(get_session)) -> ResourceService:
+def get_resource_service(
+    session: AsyncSession = Depends(get_session),
+) -> ResourceService:
     return ResourceService(session)
 
+@router.post("/process_local", response_model=ResourceResponse)
+async def process_local_resource(
+    file: UploadFile = File(...),
+    name: str = Form(...),
+    service: ResourceService = Depends(get_resource_service),
+    current_user: User = Depends(get_current_admin_user),
+):
+    try:
+        tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
+        tmp.write(await file.read())
+        tmp_path = Path(tmp.name)
+        tmp.close()
 
-@router.post("/", response_model=ResourceResponse)
+        new_resource = await service.create_resource_from_local(
+            name=name,
+            filepath=str(tmp_path),
+            user_id=current_user.id,
+        )
+
+        await service.process_resource(new_resource.external_id, current_user.id)
+        return await service.get_by_external_id(new_resource.external_id)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al procesar recurso local: {str(e)}")
+
+@router.post("/", response_model=ResourceResponseBase)
 async def create_resource(
     resource: ResourceCreate,
-    service: ResourceService = Depends(get_source_service),
-    current_user: User = Depends(get_current_user),
+    service: ResourceService = Depends(get_resource_service),
+    current_user: User = Depends(get_current_admin_user),
 ):
     return await service.create_resource(resource)
 
 
-@router.post("/process_resource/{resource_id}", response_model=ResourceProcessResponse)
+@router.post("/process/{resource_id}", response_model=ResourceProcessResponse)
 async def process_resource(
     resource_id: UUID,
-    service: ResourceService = Depends(get_source_service),
-    current_user: User = Depends(get_current_user),
+    service: ResourceService = Depends(get_resource_service),
+    current_user: User = Depends(get_current_admin_user),
 ):
     try:
         chunks = await service.process_resource(resource_id, current_user.id)
@@ -46,20 +76,51 @@ async def process_resource(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"exepcion => {str(e)}")
 
+# @router.post("/process-url-pdf")
+# async def process_url_pdf(
+#     payload: ResourcePDFUrl,
+#     current_user: User = Depends(get_current_admin_user)
+# ):
+#     try:
+#         response = requests.get(payload.url)
+#         response.raise_for_status()
 
-@router.get("/", response_model=list[ResourceResponse])
+#         if "application/pdf" not in response.headers.get("Content-Type", ""):
+#             raise HTTPException(status_code=400, detail="La URL no apunta a un archivo PDF válido.")
+
+#         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+#             tmp_file.write(response.content)
+#             tmp_path = tmp_file.name
+
+#         # Usa tu nueva función modular
+#         chunks, embeddings = process_pdf_file(tmp_path)
+
+#         # Opcional: almacenar en FAISS, aunque no se asocie a un recurso
+#         chunk_ids = list(range(len(chunks)))  # IDs simulados si no hay persistencia
+#         store_in_faiss(embeddings, chunk_ids)
+
+#         return {
+#             "message": "PDF desde URL procesado correctamente",
+#             "num_chunks": len(chunks),
+#             "preview": chunks[:3],  # para ver algunos chunks
+#         }
+
+#     except requests.RequestException as e:
+#         raise HTTPException(status_code=400, detail=f"Error al descargar el PDF: {str(e)}")
+
+@router.get("/", response_model=list[ResourceResponseBase])
 async def list_resources(
-    service: ResourceService = Depends(get_source_service),
-    current_user: User = Depends(get_current_user),
+    service: ResourceService = Depends(get_resource_service),
+    current_user: User = Depends(get_current_admin_user),
 ):
-    return await service.get_all_sources()
+    return await service.get_all_resources()
 
 
 @router.get("/{resource_id}", response_model=ResourceResponse)
 async def get_resource_by_id(
     resource_id: UUID,
-    service: ResourceService = Depends(get_source_service),
-    current_user: User = Depends(get_current_user),
+    service: ResourceService = Depends(get_resource_service),
+    current_user: User = Depends(get_current_admin_user),
 ):
     return await service.get_by_external_id(resource_id)
 
@@ -68,8 +129,8 @@ async def get_resource_by_id(
 async def update_resource(
     resource_id: UUID,
     resource_update: ResourceUpdate,
-    service: ResourceService = Depends(get_source_service),
-    current_user: User = Depends(get_current_user),
+    service: ResourceService = Depends(get_resource_service),
+    current_user: User = Depends(get_current_admin_user),
 ):
     updated_resource: Resource = await service.update_resource(
         resource_id, resource_update, current_user.id
@@ -80,7 +141,7 @@ async def update_resource(
 @router.delete("/{source_id}", response_model=dict)
 async def delete_resource(
     resource_id: UUID,
-    service: ResourceService = Depends(get_source_service),
-    current_user: User = Depends(get_current_user),
+    service: ResourceService = Depends(get_resource_service),
+    current_user: User = Depends(get_current_admin_user),
 ):
     return await service.delete_resource(resource_id)

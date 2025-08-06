@@ -10,6 +10,7 @@ import uuid
 class ResourceType(str, enum.Enum):
     pdf = "pdf"
     postgres = "postgres"
+    url = "url"
 
 
 class Resource(Base):
@@ -32,6 +33,8 @@ class Resource(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=True)
     updated_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, nullable=True)
+    active = Column(Boolean, default=True, nullable=False)
+
 
     chunks = relationship(
         "ResourceChunk", back_populates="resource", cascade="all, delete-orphan"

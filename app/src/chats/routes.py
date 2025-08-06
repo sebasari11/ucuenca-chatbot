@@ -9,7 +9,9 @@ from app.src.chats.schemas import (
     ChatSessionResponse,
     ChatMessageCreate,
     ChatMessageResponse,
+    ChatSessionResponseWithMessages,
 )
+from uuid import UUID
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -26,6 +28,7 @@ async def start_chat(
     session: ChatSession = await service.create_chat_session(
         user_id=current_user.id,
     )
+
     return session
 
 
@@ -43,20 +46,30 @@ async def send_message(
 
 
 @router.get(
-    "/sessions/{chat_session_id}/messages", response_model=list[ChatMessageResponse]
+    "/sessions/{chat_session_id}/messages",
+    response_model=list[ChatMessageResponse],
 )
 async def get_session_messages(
-    chat_session_id: int,
+    chat_session_id: UUID,
     service: ChatService = Depends(get_chat_service),
     current_user: User = Depends(get_current_user),
 ):
-    return await service.get_chat_message_by_session_id(chat_session_id)
+    return await service.get_chat_messages_by_session_id(chat_session_id)
 
 
 @router.delete("/sessions/{chat_session_id}")
 async def delete_chat_session(
-    chat_session_id: int,
+    chat_session_id: UUID,
     service: ChatService = Depends(get_chat_service),
     current_user: User = Depends(get_current_user),
 ):
     return await service.delete_chat_session(chat_session_id)
+
+
+@router.put("/sessions/{chat_session_id}/name", response_model=ChatSessionResponse)
+async def update_chat_session_name(
+    chat_session_id: UUID,
+    service: ChatService = Depends(get_chat_service),
+    current_user: User = Depends(get_current_user),
+):
+    return await service.generate_chat_session_name(chat_session_id)

@@ -1,3 +1,4 @@
+from typing import List
 from dotenv import load_dotenv
 import os
 
@@ -5,7 +6,8 @@ load_dotenv()
 
 
 class Settings:
-    PROJECT_NAME: str = "Chatbot UCUENCA - G.I Software"
+    PROJECT_NAME: str = "U C A L M A"
+    "Chatbot UCUENCA - G.I Software"
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     DEBUG: bool = os.getenv("DEBUG", "true").lower() == "true"
     DB_USER: str = os.getenv("DB_USER")
@@ -16,6 +18,8 @@ class Settings:
     DEEPSEEK_API_KEY: str | None = os.getenv("DEEPSEEK_API_KEY")
     SECRET_KEY: str = os.getenv("SECRET_KEY")
     ALGORITHM: str = os.getenv("ALGORITHM")
+    CORS_ORIGINS: List[str] = os.getenv("CORS_ORIGINS", "").split(",")
+    GEMINI_API_KEY: str | None = os.getenv("GEMINI_API_KEY")
 
 
 settings = Settings()

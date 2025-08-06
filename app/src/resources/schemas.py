@@ -1,20 +1,23 @@
-from pydantic import BaseModel, ConfigDict, Field
-from typing import Union, Annotated, Optional, Literal
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+from typing import Union, Annotated, Optional, Literal, List
 from app.src.chunks.schemas import ChunkResponse
 from app.src.resources.models import ResourceType
-from typing import List
+from datetime import datetime
 from uuid import UUID
 
 
 class ResourceBase(BaseModel):
     name: str
 
-
 class PDFResourceCreate(ResourceBase):
     type: Literal["pdf"]
     filepath: str
 
-
+class URLResourceCreate(BaseModel):
+    name: Optional[str] = None
+    type: Literal["url"]
+    filepath: HttpUrl
+    
 class PostgresResourceCreate(ResourceBase):
     type: Literal["postgres"]
     host: str
@@ -25,19 +28,27 @@ class PostgresResourceCreate(ResourceBase):
 
 
 ResourceCreate = Annotated[
-    Union[PDFResourceCreate, PostgresResourceCreate], Field(discriminator="type")
+    Union[PDFResourceCreate, PostgresResourceCreate, URLResourceCreate], Field(discriminator="type")
 ]
 
 
-class ResourceResponse(ResourceBase):
+class ResourceResponseBase(ResourceBase):
     external_id: UUID
     type: str
     filepath: Optional[str]
-    host: Optional[str]
-    port: Optional[int]
-    user: Optional[str]
-    database: Optional[str]
-    processed: Optional[bool]
+    processed: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    model_config = {"from_attributes": True}
+
+
+class ResourceResponse(ResourceResponseBase):
+    host: Optional[str] = None
+    port: Optional[int] = None
+    user: Optional[str] = None
+    password: Optional[str] = None
+    database: Optional[str] = None
+    chunks: List[ChunkResponse] = []
     model_config = {"from_attributes": True}
 
 
@@ -64,3 +75,6 @@ class ResourceProcessResponse(BaseModel):
     resource_id: UUID
     chunks: List[ChunkResponse] = []
     model_config: ConfigDict = {"from_attributes": True}
+    
+class ResourcePDFUrl(BaseModel):
+    url: HttpUrl

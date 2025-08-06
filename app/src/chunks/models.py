@@ -13,5 +13,6 @@ class ResourceChunk(Base):
     chunk_text = Column(Text, nullable=False)
     embedding = Column(ARRAY(Float), nullable=False)
     order = Column(Integer, nullable=False)
+    
 
     resource = relationship("Resource", back_populates="chunks")
