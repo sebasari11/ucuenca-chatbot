@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     build: .
@@ -36,7 +34,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432"
     restart: unless-stopped
     networks:
       - app-network
@@ -44,6 +42,7 @@ services:
 volumes:
   postgres_data:
 
+
 networks:
   app-network:
-    driver: bridge 
+    driver: bridge
