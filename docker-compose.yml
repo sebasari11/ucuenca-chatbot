@@ -18,8 +18,7 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS:-*}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
-      db:
-        condition: service_healthy
+      - db                       # si tu compose se queja por "condition", deja así
     volumes:
       - ./resources:/app/resources
       - ./sources.db:/app/sources.db
@@ -45,3 +44,10 @@ services:
     restart: unless-stopped
     networks:
       - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge
