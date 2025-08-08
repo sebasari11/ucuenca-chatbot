@@ -34,7 +34,7 @@ RUN pip install --no-cache-dir --prefer-binary \
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Download NLTK data and Hugging Face model
-RUN python -m nltk.downloader punkt punkt_tab && \
+RUN python -m nltk.downloader -d /app/nltk_data punkt && \
     python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
 
 # Copy application code
