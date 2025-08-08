@@ -10,10 +10,11 @@ from google.genai import types
 from sklearn.decomposition import PCA
 from app.core.config import settings
 
-from nltk.tokenize import sent_tokenize
-
 # Descargar recursos de NLTK una sola vez
 nltk.download("punkt")
+nltk.data.path.append("/app/nltk_data")
+from nltk.tokenize import sent_tokenize
+
 
 # Modelos
 sentence_model = SentenceTransformer("all-MiniLM-L6-v2")
