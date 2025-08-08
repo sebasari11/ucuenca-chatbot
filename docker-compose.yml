@@ -6,41 +6,49 @@ services:
     environment:
       - ENVIRONMENT=production
       - DEBUG=false
-      - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
       - DB_HOST=db
       - DB_PORT=5432
-      - DB_NAME=${DB_NAME:-ucuenca_chatbot}
-      - DATABASE_URL=postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-ucuenca_chatbot}
+      - DB_NAME=ucuenca_chatbot
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM:-HS256}
       - CORS_ORIGINS=${CORS_ORIGINS:-*}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
-      - db                       # si tu compose se queja por "condition", deja así
+      db:
+        condition: service_healthy
     volumes:
       - ./resources:/app/resources
       - ./sources.db:/app/sources.db
     restart: unless-stopped
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   db:
+    container_name: db
     image: postgres:15-alpine
     environment:
-      - POSTGRES_USER=${DB_USER:-postgres}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
-      - POSTGRES_DB=${DB_NAME:-ucuenca_chatbot}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=ucuenca_chatbot
     ports:
       - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-ucuenca_chatbot} -h 127.0.0.1 -p 5432"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ucuenca_chatbot"]
+      interval: 10s
       timeout: 5s
-      retries: 20
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
     networks:
       - app-network

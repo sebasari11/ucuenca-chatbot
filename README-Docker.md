@@ -1,153 +1,188 @@
-# Docker Deployment Guide
-
-This guide explains how to deploy the UCUENCA Chatbot using Docker and Docker Compose.
+# Docker Setup Guide
 
 ## Prerequisites
 
-- Docker installed on your system
-- Docker Compose installed on your system
-- Git (to clone the repository)
+- Docker and Docker Compose installed
+- At least 4GB of available RAM
+- 10GB of available disk space
 
 ## Quick Start
 
-1. **Clone the repository and navigate to the project directory:**
+1. **Clone and navigate to the project:**
    ```bash
    cd ucuenca-chatbot
    ```
 
-2. **Create environment file:**
+2. **Set up environment variables:**
    ```bash
    cp env.example .env
    ```
+   Edit `.env` file with your actual API keys and configuration.
 
-3. **Edit the `.env` file with your configuration:**
+3. **Build and run with Docker Compose:**
    ```bash
-   nano .env
-   ```
-   
-   Make sure to set:
-   - `DB_PASSWORD`: A secure password for PostgreSQL
-   - `SECRET_KEY`: A secure secret key for JWT tokens
-   - `DEEPSEEK_API_KEY`: Your DeepSeek API key
-   - `GEMINI_API_KEY`: Your Gemini API key
-
-4. **Build and start the services:**
-   ```bash
-   docker-compose up -d
+   docker-compose up --build
    ```
 
-5. **Check if services are running:**
-   ```bash
-   docker-compose ps
-   ```
-
-6. **View logs:**
-   ```bash
-   docker-compose logs -f app
-   ```
-
-## Accessing the Application
-
-- **API Documentation:** http://localhost:8000/docs
-- **Health Check:** http://localhost:8000/health
-- **Database:** localhost:5432 (PostgreSQL)
-
-## Database Migrations
-
-If you need to run database migrations:
-
-```bash
-docker-compose exec app alembic upgrade head
-```
-
-## Stopping the Services
-
-```bash
-docker-compose down
-```
-
-To also remove volumes (this will delete all data):
-```bash
-docker-compose down -v
-```
-
-## Production Deployment
-
-For production deployment, consider:
-
-1. **Using a reverse proxy (nginx):**
-   ```yaml
-   # Add to docker-compose.yml
-   nginx:
-     image: nginx:alpine
-     ports:
-       - "80:80"
-       - "443:443"
-     volumes:
-       - ./nginx.conf:/etc/nginx/nginx.conf
-     depends_on:
-       - app
-   ```
-
-2. **Setting up SSL certificates**
-
-3. **Using environment-specific configurations**
-
-4. **Setting up monitoring and logging**
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Port already in use:**
-   - Change the port mapping in `docker-compose.yml`
-   - Example: `"8001:8000"` instead of `"8000:8000"`
-
-2. **Database connection issues:**
-   - Ensure the database service is running: `docker-compose ps`
-   - Check database logs: `docker-compose logs db`
-
-3. **Permission issues:**
-   - Ensure the `resources` directory has proper permissions
-   - The Dockerfile creates a non-root user for security
-
-### Viewing Logs
-
-```bash
-# All services
-docker-compose logs
-
-# Specific service
-docker-compose logs app
-docker-compose logs db
-
-# Follow logs in real-time
-docker-compose logs -f app
-```
-
-### Accessing the Container
-
-```bash
-# Access the app container
-docker-compose exec app bash
-
-# Access the database
-docker-compose exec db psql -U postgres -d ucuenca_chatbot
-```
+4. **Access the application:**
+   - API: http://localhost:8000
+   - API Documentation: http://localhost:8000/docs
+   - Database: localhost:5433
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DB_USER` | PostgreSQL username | postgres |
-| `DB_PASSWORD` | PostgreSQL password | postgres |
-| `DB_HOST` | Database host | localhost |
-| `DB_NAME` | Database name | ucuenca_chatbot |
-| `DB_PORT` | Database port | 5432 |
-| `DEEPSEEK_API_KEY` | DeepSeek API key | None |
-| `GEMINI_API_KEY` | Gemini API key | None |
-| `SECRET_KEY` | JWT secret key | None |
-| `ALGORITHM` | JWT algorithm | HS256 |
-| `ENVIRONMENT` | Environment mode | production |
-| `DEBUG` | Debug mode | false |
-| `CORS_ORIGINS` | CORS origins | * | 
+Create a `.env` file with the following variables:
+
+```env
+# Database Configuration
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_HOST=db
+DB_PORT=5432
+DB_NAME=ucuenca_chatbot
+
+# API Keys (Required)
+DEEPSEEK_API_KEY=your_deepseek_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# Security
+SECRET_KEY=your_secret_key_here
+ALGORITHM=HS256
+
+# Application Settings
+ENVIRONMENT=production
+DEBUG=false
+CORS_ORIGINS=*
+```
+
+## Docker Compose Services
+
+### App Service
+- **Port:** 8000
+- **Health Check:** http://localhost:8000/health
+- **Dependencies:** PostgreSQL database
+- **Volumes:** 
+  - `./resources:/app/resources` (PDF files)
+  - `./sources.db:/app/sources.db` (FAISS index)
+
+### Database Service
+- **Image:** postgres:15-alpine
+- **Port:** 5433 (external), 5432 (internal)
+- **Health Check:** PostgreSQL readiness
+- **Volume:** `postgres_data` (persistent data)
+
+## Useful Commands
+
+### Development
+```bash
+# Start services in background
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+
+# Rebuild and start
+docker-compose up --build
+```
+
+### Database Operations
+```bash
+# Access database
+docker-compose exec db psql -U postgres -d ucuenca_chatbot
+
+# Run migrations
+docker-compose exec app alembic upgrade head
+
+# Reset database
+docker-compose down -v
+docker-compose up --build
+```
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **Port already in use:**
+   ```bash
+   # Check what's using the port
+   netstat -tulpn | grep :8000
+   # Or change ports in docker-compose.yml
+   ```
+
+2. **Database connection issues:**
+   ```bash
+   # Check database logs
+   docker-compose logs db
+   
+   # Restart database
+   docker-compose restart db
+   ```
+
+3. **Memory issues:**
+   ```bash
+   # Check container resource usage
+   docker stats
+   
+   # Increase Docker memory limit in Docker Desktop settings
+   ```
+
+4. **Build failures:**
+   ```bash
+   # Clear Docker cache
+   docker system prune -a
+   
+   # Rebuild without cache
+   docker-compose build --no-cache
+   ```
+
+#### Health Check Failures
+
+- **App health check failing:** Check if the application is starting properly
+- **Database health check failing:** Check if PostgreSQL is initializing correctly
+
+#### Performance Optimization
+
+1. **Increase Docker resources:**
+   - Memory: 4GB minimum, 8GB recommended
+   - CPU: 2 cores minimum, 4 cores recommended
+
+2. **Use Docker volumes for development:**
+   ```yaml
+   volumes:
+     - .:/app
+     - /app/venv
+   ```
+
+## Production Deployment
+
+For production, consider:
+
+1. **Use proper secrets management**
+2. **Set up proper logging**
+3. **Configure backup strategies**
+4. **Use reverse proxy (nginx)**
+5. **Set up monitoring and alerting**
+
+## Security Considerations
+
+1. **Change default passwords**
+2. **Use strong SECRET_KEY**
+3. **Limit CORS_ORIGINS in production**
+4. **Regular security updates**
+5. **Network isolation**
+
+## Monitoring
+
+```bash
+# Check service status
+docker-compose ps
+
+# Monitor resource usage
+docker stats
+
+# View service logs
+docker-compose logs [service_name]
+``` 
