@@ -68,3 +68,45 @@ class FaissManager:
         self.generate_index(dim)
         self.id_map = {}
         self.save()
+    
+    def delete_index(self, dim: int = 384):
+        """
+        Elimina los archivos físicos del índice FAISS y reinicia la instancia en memoria.
+        
+        Args:
+            dim: Dimensión del nuevo índice vacío (default: 384)
+        
+        Returns:
+            dict: Información sobre los archivos eliminados
+        """
+        deleted_files = []
+        
+        # Eliminar archivo del índice si existe
+        if os.path.exists(INDEX_PATH):
+            try:
+                os.remove(INDEX_PATH)
+                deleted_files.append(INDEX_PATH)
+                logger.info(f"Archivo de índice eliminado: {INDEX_PATH}")
+            except OSError as e:
+                logger.error(f"Error al eliminar el archivo de índice: {str(e)}")
+                raise
+        
+        # Eliminar archivo del mapa de IDs si existe
+        if os.path.exists(ID_MAP_PATH):
+            try:
+                os.remove(ID_MAP_PATH)
+                deleted_files.append(ID_MAP_PATH)
+                logger.info(f"Archivo de mapa de IDs eliminado: {ID_MAP_PATH}")
+            except OSError as e:
+                logger.error(f"Error al eliminar el archivo de mapa de IDs: {str(e)}")
+                raise
+        
+        # Reiniciar el índice en memoria
+        self.reset_index(dim=dim)
+        logger.info(f"Índice FAISS reiniciado en memoria con dimensión {dim}")
+        
+        return {
+            "deleted_files": deleted_files,
+            "message": "Índice FAISS eliminado y reiniciado correctamente",
+            "new_index_dimension": dim
+        }
