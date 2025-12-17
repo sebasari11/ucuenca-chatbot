@@ -206,7 +206,7 @@ async def answer_with_gemini(prompt: str, chat_history: List[dict]) -> str:
     }
     contents = chat_history + [current_user_message_content]
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         config=types.GenerateContentConfig(
             system_instruction="Eres un asistente de salud mental virtual llamado UCALMA. Tu objetivo es brindar apoyo y respuestas útiles, priorizando la precisión y el bienestar del usuario."
         ),
