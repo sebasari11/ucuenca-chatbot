@@ -14,14 +14,11 @@ from app.src.users.routes import router as users_router
 from app.src.resources.routes import router as resources_router
 from app.src.chunks.routes import router as chunks_router
 from app.src.chats.routes import router as chats_router
+from app.src.faiss_index.routes import router as faiss_index_router
 
-# Set up logging configuration
 setup_logging()
 
-# # Optional: Run migrations on startup
-# run_migrations()
 
-# Set up logger for this module
 logger = get_logger(__name__)
 
 
@@ -47,3 +44,4 @@ app.include_router(users_router)
 app.include_router(resources_router)
 app.include_router(chunks_router)
 app.include_router(chats_router)
+app.include_router(faiss_index_router)
